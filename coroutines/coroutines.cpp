@@ -211,11 +211,19 @@ namespace Coroutines {
   }
 
   // --------------------------------------------
-  void exitCo() {
-    assert(isHandle(current()));
-    auto co = internal::byHandle(current());
-    assert(co);
-    co->epilogue();
+  void exitCo(THandle h) {
+    auto co = internal::byHandle(h);
+    if (!co)
+      return;
+    if (h == current()) {
+      assert(isHandle(h));
+      if( co  )
+        co->epilogue();
+    }
+    else {
+      co->markAsFree();
+      co->wakeOthersWaitingForMe();
+    }
   }
 
   // -------------------------------

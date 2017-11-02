@@ -2,10 +2,10 @@ This is a C++ wrapper on top of libCouritines
 
 - Move TChannel to handle-based resource
 - Use proper real time for wait fn's.
-+ get/store use data pointer per co. No tiene sentido, ya tiene lambda args
 - Wait for Barrier.
-/ allow a coroutine to abort it's current execution
-- Move vars to sched. Add a sched pointer to tcoro
+/ allow a coroutine to abort it's current execution, or another co or main to abort any other co. Not tested
+* get/store use data pointer per co. No tiene sentido, ya tiene lambda args
+* Move vars to sched. Add a sched pointer to tcoro. Not needed unless we add threads
 + TimeOut
 
 - A co is:

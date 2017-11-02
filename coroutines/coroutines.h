@@ -47,7 +47,7 @@ namespace Coroutines {
   bool    isHandle(THandle h);
   THandle current();
   void    yield();
-  void    exitCo();
+  void    exitCo(THandle h = current());
   
   // --------------------------------------------------
   int     executeActives();
