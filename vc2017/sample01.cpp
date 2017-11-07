@@ -84,6 +84,16 @@ struct TLink {
   TNode* dst = nullptr;
   int    max_elems = 0;           // default
   static TConfig* curr_layout;
+
+  struct TReader {
+    TConfig* prev_layout = nullptr;
+    TReader(TConfig* new_layout) : prev_layout(curr_layout) {
+      curr_layout = new_layout;
+    }
+    ~TReader() {
+      curr_layout = prev_layout;
+    }
+  };
 };
 
 // -----------------------------------------------
@@ -117,6 +127,7 @@ void from_json(const json& j, TNode& p) {
     p.flow_node = new TConsoleOutput();
   else {
     dbg("Invalid node type %s", p.type.c_str());
+    return;
   }
   p.flow_node->read(j);
 }
@@ -141,9 +152,9 @@ void from_json(const json& j, TConfig& p) {
   p.all_nodes = j.at("nodes").get<VNodes>();
   for (auto& n : p.all_nodes)
     p.nodes_by_id[n.id] = &n;
-  TLink::curr_layout = &p;
+
+  TLink::TReader reader(&p);
   p.all_links = j.at("links").get<VLinks>();
-  TLink::curr_layout = nullptr;
 }
 
 // -----------------------------------------------
@@ -180,11 +191,26 @@ bool TConfig::build() {
   // Create a coroutine to run on each node
   for (auto& it : all_nodes) {
     TNode* node = &it;
-    node->co = Coroutines::start([node]() {
+    Coroutines::start([node]() {
       TNode* n = node;
+      n->co = Coroutines::current();
+      assert(n);
+      //dbg("%s starts\n", n->id.c_str());
       assert(n->flow_node);
-      while (n->flow_node->run()) {
+      while (true) {
+        bool running = n->flow_node->run();
+        assert(n);
+        assert(Coroutines::isHandle(n->co));
+        //dbg("%s says running is %d\n", n->id.c_str(), running);
+        if (!running)
+          break;
       }
+
+      // Closing my output channels, readers of these channels must be aware that 
+      // nobody will queue more data
+      for (auto c : n->flow_node->outs)
+        c->close();
+      //dbg("%s ends\n", n->id.c_str());
     });
   }
   return true;
