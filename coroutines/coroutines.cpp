@@ -551,7 +551,10 @@ namespace Coroutines {
       
       co->resume();
 
-      if (co->state == TCoro::RUNNING || co->state == TCoro::WAITING_FOR_CONDITION)
+      if ( co->state == TCoro::RUNNING 
+        || co->state == TCoro::WAITING_FOR_CONDITION 
+        || co->state == TCoro::WAITING_FOR_EVENT       // If by resuming we become WaitingForEvent, we are in fact an active co
+        )
         ++nactives;
 
     }
