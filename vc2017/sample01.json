@@ -2,7 +2,7 @@
   "nodes" : [
     { 
       "id":"int_generator",
-      "type":"int_producer",
+      "type":"range",
       "start":4,
       "count":5,
       "step":2

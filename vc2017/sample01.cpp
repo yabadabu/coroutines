@@ -23,7 +23,7 @@ struct TFlowNode {
   virtual void read(const json& j) { }
 };
 
-struct TIntGenerator : public TFlowNode {
+struct TRange : public TFlowNode {
   // Runtime params
   int curr = 0;
   int num_generated = 0;
@@ -36,10 +36,10 @@ struct TIntGenerator : public TFlowNode {
   bool run() override {
     assert(outs.size() == 1);
     assert(ins.size() == 0);
-    dbg("TIntGenerator::writing int %d (%d/%d)\n", curr, num_generated, count );
+    dbg("TRange::writing int %d (%d/%d)\n", curr, num_generated, count );
     if (!push(outs[0], curr))
       return false;
-    dbg("TIntGenerator::done\n");
+    dbg("TRange::done\n");
     curr += step;
     num_generated++;
     return num_generated < count;
@@ -121,8 +121,8 @@ void from_json(const json& j, TNode& p) {
   p.id = j.at("id").get<std::string>();
   p.type = j.at("type").get<std::string>();
 
-  if (p.type == "int_producer")
-    p.flow_node = new TIntGenerator();
+  if (p.type == "range")
+    p.flow_node = new TRange();
   else if (p.type == "console_output")
     p.flow_node = new TConsoleOutput();
   else {
