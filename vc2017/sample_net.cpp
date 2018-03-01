@@ -54,6 +54,7 @@ static void runServer() {
 }
 
 // ---------------------------------------------------------
+// Connects, then send's an id, and recv another.
 static void runClient(int max_id) {
 
   TNetAddress addr;

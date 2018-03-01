@@ -205,12 +205,8 @@ namespace Coroutines {
 // port and vport are in host format
 void TNetAddress::from(int port, unsigned ip4_in_host_format) {
   assert(port > 0 && port < 65535);
-
   memset(&addr, 0, sizeof(addr));
   addr.sin_family = AF_INET;
-#if defined( NET_ADDR_HAS_SIN_LEN_MEMBER )
-  addr.sin_len = sizeof(addr);
-#endif
   addr.sin_addr.s_addr = htonl(ip4_in_host_format);
   addr.sin_port = htons(port);
 }
