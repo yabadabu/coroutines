@@ -14,7 +14,7 @@
     <ClCompile Include="..\coroutines\io_channel.cpp">
       <Filter>coroutines</Filter>
     </ClCompile>
-    <ClCompile Include="sample02.cpp" />
+    <ClCompile Include="sample_net.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="coroutines">
