@@ -361,8 +361,12 @@ void test_io() {
 }
 
 // -----------------------------------------------------------
+extern void test_app2();
+extern void test_app3();
+
+// -----------------------------------------------------------
 int main(int argc, char** argv) {
-  if (1) {
+  if (0) {
     test_demo_yield();
     test_wait_time();
     test_wait_co();
@@ -371,8 +375,13 @@ int main(int argc, char** argv) {
     test_wait_2_coroutines_with_timeout();
     test_channels();
     test_channels_send_from_main();
+    //test_io();
   }
-  test_io();
+  else
+  {
+    //test_app2();
+    test_app3();
+  }
   return 0;
 }
 

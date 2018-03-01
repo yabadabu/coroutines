@@ -432,7 +432,18 @@ namespace Coroutines {
 
     if (!e || e->mask == 0)
       return;
+
+    assert(e && e->fd == fd);
     e->mask &= (~mode);
+
+    if (mode == TO_READ) {
+      FD_CLR(fd, &rfds);
+      e->waiting_to_read.detach(we);
+    }
+    else {
+      FD_CLR(fd, &wfds);
+      e->waiting_to_write.detach(we);
+    }
 
     assert(e && e->fd == fd);
 
@@ -441,10 +452,18 @@ namespace Coroutines {
       // Update max_fd when we remove the largest fd defined
       max_fd = 0;
       for (auto& e : entries) {
-        if (e.fd > max_fd)
+        if (e.mask && e.fd > max_fd)
           max_fd = e.fd;
       }
     }
+
+    SOCKET_ID new_max_fd = 0;
+    for (auto ne : entries) {
+      if (ne.mask != 0 && ne.fd > new_max_fd)
+        new_max_fd = ne.fd;
+    }
+    assert(new_max_fd == max_fd);
+
   }
 
   int internal::TIOEvents::update() {
@@ -461,7 +480,7 @@ namespace Coroutines {
 
     // Do a real wait
     int num_events = 0;
-    int retval = ::select(max_fd + 1, &fds_to_read, &fds_to_write, nullptr, &tm);
+    auto retval = ::select((int)(max_fd + 1), &fds_to_read, &fds_to_write, nullptr, &tm);
     if (retval > 0) {
 
       for (auto& e : entries) {
@@ -494,18 +513,6 @@ namespace Coroutines {
   }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
   // ----------------------------------------------------------
   int executeActives() {
     
@@ -519,6 +526,8 @@ namespace Coroutines {
 
     int nactives = 0;
 
+    auto ncoros = coros.size();
+    
     for (auto co : coros) {
       
       // Skip the free's

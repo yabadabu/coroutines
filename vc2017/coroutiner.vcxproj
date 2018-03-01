@@ -155,6 +155,7 @@
     <ClCompile Include="..\coroutines\io_channel.cpp" />
     <ClCompile Include="..\coroutines\timeline.cpp" />
     <ClCompile Include="sample00.cpp" />
+    <ClCompile Include="sample02.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\README" />
