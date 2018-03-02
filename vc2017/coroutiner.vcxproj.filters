@@ -15,6 +15,7 @@
       <Filter>coroutines</Filter>
     </ClCompile>
     <ClCompile Include="sample_net.cpp" />
+    <ClCompile Include="sample_create.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="coroutines">

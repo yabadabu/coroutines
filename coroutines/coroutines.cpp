@@ -45,9 +45,9 @@ namespace Coroutines {
       void*                     boot_fn_arg = nullptr;
 
       // Low Level 
-      fcontext_transfer_t       ip;
-      fcontext_stack_t          stack;
-      fcontext_transfer_t       caller_ctx;
+      fcontext_transfer_t       ip = { nullptr, nullptr };
+      fcontext_stack_t          stack = { nullptr, 0 };
+      fcontext_transfer_t       caller_ctx = { nullptr, nullptr };
 
       static void ctxEntryFn(fcontext_transfer_t t) {
         TCoro* co = reinterpret_cast<TCoro*>(t.data);
@@ -541,8 +541,10 @@ namespace Coroutines {
 
       // The 'waiting for condition' must be checked on each try/run
       if (co->state == TCoro::WAITING_FOR_CONDITION) {
-        if (co->must_wait())
+        if (co->must_wait()) {
+          ++nactives;
           continue;
+        }
         co->state = TCoro::RUNNING;
       }
       else {

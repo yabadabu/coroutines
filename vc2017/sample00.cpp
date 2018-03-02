@@ -362,7 +362,8 @@ void test_io() {
 
 // -----------------------------------------------------------
 extern void test_app2();
-extern void test_app3();
+extern void sample_net();
+extern void sample_create();
 
 // -----------------------------------------------------------
 int main(int argc, char** argv) {
@@ -380,7 +381,8 @@ int main(int argc, char** argv) {
   else
   {
     //test_app2();
-    test_app3();
+    sample_create();
+    //sample_net();
   }
   return 0;
 }

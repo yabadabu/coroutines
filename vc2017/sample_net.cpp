@@ -81,7 +81,7 @@ static void runClient(int max_id) {
 
 
 // ----------------------------------------------------------
-void test_app3() {
+void sample_net() {
 
   WSADATA wsaData;
   int iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
@@ -94,5 +94,5 @@ void test_app3() {
     if (!Coroutines::executeActives())
       break;
   }
-  dbg("done\n");
+  dbg("sample_net done\n");
 }
