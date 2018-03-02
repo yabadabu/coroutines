@@ -9,6 +9,7 @@ namespace Coroutines {
 
   static const uint16_t INVALID_ID = 0xffff;
 
+  // --------------------------
   namespace internal {
 
     // -----------------------------------------
@@ -41,8 +42,7 @@ namespace Coroutines {
       TWatchedEvent*            event_waking_me_up = nullptr;      // Which event took us from the WAITING_FOR_EVENT
 
       // User entry point 
-      TBootFn                   boot_fn = nullptr;
-      void*                     boot_fn_arg = nullptr;
+      TBootFn                   boot_fn;
 
       // Low Level 
       fcontext_transfer_t       ip = { nullptr, nullptr };
@@ -59,8 +59,7 @@ namespace Coroutines {
 
       void runUserFn() {
         assert(boot_fn);
-        assert(boot_fn_arg);
-        (*boot_fn)(boot_fn_arg);
+        boot_fn();
       }
 
       static const size_t default_stack_size = 64 * 1024;
@@ -159,15 +158,15 @@ namespace Coroutines {
     }
 
     // --------------------------
-    THandle start(TBootFn boot_fn, void* boot_fn_arg) {
+    THandle start(TBootFn&& boot_fn) {
 
       TCoro* co_new = findFree();
       assert(co_new);                               // Run out of free coroutines slots
       assert(co_new->state == TCoro::RUNNING);
 
-      // Save arguments
+      // Save user entry point arguments
       co_new->boot_fn = boot_fn;
-      co_new->boot_fn_arg = boot_fn_arg;
+
       co_new->resetIP();
 
       // Can't start the new co from another co. Just register it
@@ -200,6 +199,10 @@ namespace Coroutines {
   // --------------------------------------------
   bool isHandle(THandle h) {
     return internal::byHandle(h) != nullptr;
+  }
+
+  THandle start(TBootFn&& user_fn) {
+    return internal::start(std::forward<TBootFn>(user_fn));
   }
 
   // --------------------------------------------
@@ -526,9 +529,13 @@ namespace Coroutines {
 
     int nactives = 0;
 
-    auto ncoros = coros.size();
-    
-    for (auto co : coros) {
+    // coros can be enlarged inside the loop, watch the iterator
+    // don't become invalidated
+    int i = 0;
+    while (i < coros.size()) {
+      auto co = coros[i];
+      ++i;
+      assert(co);
       
       // Skip the free's
       if (co->state == TCoro::FREE)

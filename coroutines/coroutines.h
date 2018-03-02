@@ -23,25 +23,10 @@ namespace Coroutines {
     uint32_t asUnsigned() const { return (age << 16 ) | id; }
   };
 
-  typedef void(*TBootFn)(void*);
+  typedef std::function<void(void)> TBootFn;
 
   // --------------------------
-  namespace internal {
-    THandle start(TBootFn boot_fn, void* fn_addr);
-
-    // This will translate any signature to a common calling signature
-    template< typename TFn >
-    static void userBoot(void* user_fn_addr) {
-      TFn* fn = static_cast<TFn*> (user_fn_addr);
-      (*fn)();
-    }
-  }
-
-  // --------------------------
-  template< typename TFn >
-  THandle start(TFn user_fn) {
-    return internal::start(&internal::userBoot<TFn>, &user_fn);
-  }
+  THandle start(TBootFn&& user_fn);
 
   // --------------------------------------------------
   bool    isHandle(THandle h);

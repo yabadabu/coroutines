@@ -264,102 +264,6 @@ struct TBuffer : public std::vector< uint8_t > {
 };
 
 // ---------------------------------------------------------------
-
-// ---------------------------------------------------------------
-void test_io() {
-
-  WSADATA wsaData;
-  int iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
-
-  TSimpleDemo demo("test_io");
-  auto co1 = start([&]() {
-
-    TNetAddress addr;
-    addr.fromStr("192.168.10.105", 8080);
-
-    CIOChannel s;
-    if (!s.connect(addr, 3))
-      return false;
-
-    const char* request = "GET / HTTP/1.1\r\n"
-      "Connection: Keep - Alive\r\n"
-      "User - Agent : Mozilla / 4.01[en](Win95; I)\r\n"
-      "Accept : image / gif, image / x - xbitmap, image / jpeg, image / pjpeg, */*\r\n"
-      "Accept-Language: en\r\n"
-      "Accept-Charset: iso-8859-1,*,utf-8\r\n"
-      "\r\n";
-    
-    TBuffer b2(32);
-    int bytes_read = s.recv(b2.data(), b2.capacity());
-    if (bytes_read < 0) {
-      dbg("Failed to read\n");
-      return false;
-    }
-    dbg("Read %d bytes\n", bytes_read);
-    b2.resize(bytes_read);
-
-    if (!s.send(request, strlen(request)))
-      return false;
-
-    bool header_complete = true;
-    std::vector< std::string > header_lines;
-    TBuffer b(32);
-    int     unprocessed_bytes = 0;
-    while (!header_complete) {
-      
-      //// read chunk
-      //auto bytes_read = s.recvUpToNBytes(b.data() + unprocessed_bytes, b.capacity() - unprocessed_bytes);
-      //if (!bytes_read)
-      //  break;
-      //unprocessed_bytes += bytes_read;
-      //b.resize(unprocessed_bytes);
-
-      //// Process
-      //auto processed_bytes = 0;
-      //auto p = b.data();
-      //while (processed_bytes < unprocessed_bytes) {
-      //  if (*p != '\r')
-      //    break;
-      //  ++p;
-      //}
-      //if (*p != '\r')
-      //  continue;
-      //++processed_bytes;
-
-      //// save header line
-      //header_lines.push_back((const char*)b.data());
-
-      //// remove header line from temp buffer
-      //memmove(b.data(), b.data() + processed_bytes, unprocessed_bytes - processed_bytes);
-      //unprocessed_bytes -= processed_bytes;
-    }
-
-    //auto f = open(filename, "rb");
-    //while (true) {
-    //  TBuffer b(4096);
-    //  auto bytes_read = read(f, b.data(), b.capacity());
-    //  b.resize(bytes_read);
-    //}
-    //close(f);
-
-    //auto buffer = file::read("input.bin");
-
-    /*
-    int si = s_open("input.bin", "rb");
-    int so = s_open("output.bin", "wb");
-    pipe(si, so);
-
-    int si = s_open("input.bin", "rb");
-    int so = s_open([](void* data, size_t data_size) {
-    }, "wb");
-    pipe(si, so);
-    */
-
-    return true;
-  });
-  runUntilAllCoroutinesEnd();
-}
-
 // -----------------------------------------------------------
 extern void test_app2();
 extern void sample_net();
@@ -376,7 +280,6 @@ int main(int argc, char** argv) {
     test_wait_2_coroutines_with_timeout();
     test_channels();
     test_channels_send_from_main();
-    //test_io();
   }
   else
   {

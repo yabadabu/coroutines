@@ -17,10 +17,9 @@ void waitKeyPress(int c) {
 
 
 // ---------------------------------------------------------
-static void doSecond() {
+static void doSecond(int max_n) {
   int key = 'W';
   int n = 0;
-  int max_n = 3;
   dbg("doSecond: started. Press %c %d times\n", key, max_n);
   while (n < max_n) {
     ++n;
@@ -49,7 +48,7 @@ static void doSpawner() {
     waitKeyPress(key);
     dbg("doSpawner: key %c has been pressed\n", key);
 
-    start(&doSecond);
+    start([]() { doSecond(3); });
 
   }
 
