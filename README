@@ -1,12 +1,17 @@
-This is a C++ wrapper on top of libCouritines
+This is a C++ wrapper to run coroutines using fcontext
+
+** TODO
+
+- Use proper real time for wait fn's.
+- Add more examples
+- Confirm a co can abort itself, or another co.
+- Test in unix/osx 
 
 - Move TChannel to handle-based resource
-- Use proper real time for wait fn's.
 - Wait for Barrier.
 / allow a coroutine to abort it's current execution, or another co or main to abort any other co. Not tested
 * get/store use data pointer per co. No tiene sentido, ya tiene lambda args
 * Move vars to sched. Add a sched pointer to tcoro. Not needed unless we add threads
-+ TimeOut
 
 - A co is:
   - Running, meaning will run until yields or checks a wait condition
@@ -63,10 +68,7 @@ This is a C++ wrapper on top of libCouritines
     };
     wait( events_to_watch );
 
-
-
 - co's are dispatched by several threads, not just one (a la ps4)
-- Test in unix
 - Check support for coroutine local storage (or cls())
 
 
