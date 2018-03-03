@@ -131,7 +131,7 @@ namespace Coroutines {
     }
   }
 
-  bool CIOChannel::recv(void* dest_buffer, size_t bytes_to_read) {
+  bool CIOChannel::recv(void* dest_buffer, size_t bytes_to_read) const {
     size_t total_bytes_read = 0;
     while (isValid()) {
       auto new_bytes_read = sys_recv(fd, (char*)dest_buffer, (int)( bytes_to_read - total_bytes_read ), 0);
@@ -158,7 +158,7 @@ namespace Coroutines {
     return false;
   }
 
-  int CIOChannel::recvUpTo(void* dest_buffer, size_t bytes_to_read) {
+  int CIOChannel::recvUpTo(void* dest_buffer, size_t bytes_to_read) const {
     while (isValid()) {
       auto new_bytes_read = sys_recv(fd, (char*)dest_buffer, (int)(bytes_to_read), 0);
       if (new_bytes_read == -1) {
@@ -177,7 +177,7 @@ namespace Coroutines {
     return -1;
   }
 
-  bool CIOChannel::send(const void* src_buffer, size_t bytes_to_send) {
+  bool CIOChannel::send(const void* src_buffer, size_t bytes_to_send) const {
     size_t total_bytes_sent = 0;
     while (isValid()) {
       auto bytes_sent = sys_send(fd, ((const char*)src_buffer) + total_bytes_sent, (int) ( bytes_to_send - total_bytes_sent ), 0);

@@ -16,6 +16,9 @@ static void runServer() {
   TNetAddress listenning_addr;
   listenning_addr.fromAnyAddress(port);
 
+  // Wait some time before starting the server
+  // wait(nullptr, 0, 1000);
+
   CIOChannel server;
   if (!server.listen(listenning_addr)) {
     dbg("Server: Failed to start the server at port %d.\n", port);
@@ -33,23 +36,26 @@ static void runServer() {
     }
 
     dbg("Server: New client connected\n");
-    {
-      int id = 0;
+    auto co_client = start(std::bind( [](CIOChannel client) {
+      int n = 0;
       while (true) {
-        //dbg("Server: Waiting for client\n");
-        if (!client.recv(id))
+        dbg("Server: Waiting for client\n");
+        if (!client.recv(n))
           break;
-        id++;
-        //dbg("Server: Sending answer %d to client\n", id);
-        if (!client.send(id))
+        n++;
+        dbg("Server: Sending answer %d to client\n", n);
+        if (!client.send(n))
           break;
       }
-      dbg("Server: Client has been disconnected %d\n", id);
+      dbg("Server: Client has been disconnected. Loops=%d\n", n);
       client.close();
-    }
+    }, client ));
 
     ++nclients;
   }
+
+  dbg("Server: Closing\n");
+  server.close();
 
 }
 
@@ -59,23 +65,30 @@ static void runClient(int max_id) {
 
   TNetAddress addr;
   addr.fromStr("127.0.0.1", port);
+  dbg("Client: Connecting to server\n");
 
   CIOChannel client;
-  if (!client.connect(addr, 1000))
+  if (!client.connect(addr, 1000)) {
+    dbg("Client: Can't connect to server.\n");
     return;
+  }
   dbg("Client: Connected to server.\n");
 
   int id = 0;
   while (id < max_id) {
-    //dbg("Client: Sending %d\n", id);
-    if (!client.send(id))
+    dbg("Client: Sending %d / %d\n", id, max_id);
+    if (!client.send(id)) {
+      dbg("Client: Send failed\n");
       return;
-    //dbg("Client: Receiving...\n");
-    if (!client.recv(id))
+    }
+    dbg("Client: Receiving...\n");
+    if (!client.recv(id)) {
+      dbg("Client: Recv failed\n");
       return;
-    //dbg("Client: Received %d\n", id);
+    }
+    dbg("Client: Received %d / %d\n", id, max_id);
   }
-  dbg("Client: Exiting after %d loops\n", id);
+  dbg("Client: Exiting after %d / %d loops\n", id, max_id);
   client.close();
 }
 
@@ -87,12 +100,15 @@ void sample_net() {
   int iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
 
   auto co_s = start( &runServer );
-  auto co_c1 = start([]() { runClient(10000); });
+  auto co_c1 = start([]() { runClient(3); });
+  auto co_c2 = start([]() { runClient(5); });
 
+  int counter = 0;
   while (true) {
     Coroutines::updateCurrentTime(1);
     if (!Coroutines::executeActives())
       break;
+    dbg("%d\r", counter++);
   }
-  dbg("sample_net done\n");
+  dbg("sample_net done after %d iters\n", counter);
 }

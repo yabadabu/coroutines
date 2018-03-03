@@ -281,11 +281,11 @@ int main(int argc, char** argv) {
     test_channels();
     test_channels_send_from_main();
   }
-  else
+  else 
   {
     //test_app2();
-    sample_create();
-    //sample_net();
+    //sample_create();
+    sample_net();
   }
   return 0;
 }

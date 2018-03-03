@@ -16,18 +16,18 @@ namespace Coroutines {
     CIOChannel accept();
     bool       connect(const TNetAddress &remote_server, int timeout_sec);
     // Will block until all bytes have been recv/sent
-    bool       recv(void* dest_buffer, size_t bytes_to_read);
-    bool       send(const void* src_buffer, size_t bytes_to_send);
+    bool       recv(void* dest_buffer, size_t bytes_to_read) const;
+    bool       send(const void* src_buffer, size_t bytes_to_send) const;
     // Will return -1 if no bytes can been read. Will block until something is read.
-    int        recvUpTo(void* dest_buffer, size_t max_bytes_to_read);
+    int        recvUpTo(void* dest_buffer, size_t max_bytes_to_read) const;
     void       close();
 
     template< typename T >
-    bool recv(T& obj) {
+    bool recv(T& obj) const {
       return recv(&obj, sizeof(T));
     }
     template< typename T >
-    bool send(const T& obj) {
+    bool send(const T& obj) const {
       return send(&obj, sizeof(T));
     }
 

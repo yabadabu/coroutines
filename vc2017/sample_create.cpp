@@ -15,7 +15,6 @@ void waitKeyPress(int c) {
   });
 }
 
-
 // ---------------------------------------------------------
 static void doSecond(int max_n) {
   int key = 'W';
@@ -67,5 +66,5 @@ void sample_create() {
       break;
     dbg("%d\r", counter++);
   }
-  dbg("sample_create done\n");
+  dbg("sample_create done after %d iters\n", counter);
 }
