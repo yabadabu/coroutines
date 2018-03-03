@@ -8,6 +8,8 @@
 using namespace Coroutines;
 
 extern void dbg(const char *fmt, ...);
+extern void runUntilAllCoroutinesEnd();
+
 int port = 8081;
 
 // ---------------------------------------------------------
@@ -104,12 +106,5 @@ void sample_net() {
   auto co_c1 = start([]() { runClient(1); });
   auto co_c2 = start([]() { runClient(2); });
 
-  int counter = 0;
-  while (true) {
-    Coroutines::updateCurrentTime(1);
-    if (!Coroutines::executeActives())
-      break;
-    dbg("%d\r", counter++);
-  }
-  dbg("sample_net done after %d iters\n", counter);
+  runUntilAllCoroutinesEnd();
 }

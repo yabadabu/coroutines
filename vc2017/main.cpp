@@ -1,0 +1,46 @@
+#define _CRT_SECURE_NO_WARNINGS
+#include <cstdarg>
+#include <cstdio>
+#include "sample.h"
+
+using namespace Coroutines;
+
+// --------------------------------------------------
+void dbg(const char *fmt, ...) {
+  char buf[1024];
+  va_list ap;
+  va_start(ap, fmt);
+  int n = _vsnprintf_s(buf, sizeof(buf) - 1, fmt, ap);
+  if (n < 0)
+    buf[1023] = 0x00;
+  va_end(ap);
+  printf("%04d:%02d.%02d %s", (int)now(), current().id, current().age, buf);
+}
+
+void runUntilAllCoroutinesEnd() {
+  int counter = 0;
+  while (true) {
+    updateCurrentTime(1);
+    if (!executeActives())
+      break;
+    dbg("%d\r", counter++);
+  }
+  dbg("all done after %d iters\n", counter);
+}
+
+// ---------------------------------------------------------------
+// -----------------------------------------------------------
+extern void sample_channels();
+extern void sample_net();
+extern void sample_create();
+extern void sample_wait();
+
+// -----------------------------------------------------------
+int main(int argc, char** argv) {
+  sample_wait();
+  //sample_channels();
+  //sample_create();
+  //sample_net();
+  return 0;
+}
+

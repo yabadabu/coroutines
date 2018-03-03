@@ -8,6 +8,7 @@ using namespace Coroutines;
 
 extern void dbg(const char *fmt, ...);
 extern void waitKeyPress(int c);
+extern void runUntilAllCoroutinesEnd();
 
 void waitKeyPress(int c) {
   wait([c]() { 
@@ -56,15 +57,6 @@ static void doSpawner() {
 
 // ----------------------------------------------------------
 void sample_create() {
-
   auto co_s = start( &doSpawner);
-
-  int counter = 0;
-  while (true) {
-    Coroutines::updateCurrentTime(1);
-    if (!Coroutines::executeActives())
-      break;
-    dbg("%d\r", counter++);
-  }
-  dbg("sample_create done after %d iters\n", counter);
+  runUntilAllCoroutinesEnd();
 }

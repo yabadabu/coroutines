@@ -1,7 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="sample00.cpp" />
     <ClCompile Include="..\coroutines\coroutines.cpp">
       <Filter>coroutines</Filter>
     </ClCompile>
@@ -16,6 +15,9 @@
     </ClCompile>
     <ClCompile Include="sample_net.cpp" />
     <ClCompile Include="sample_create.cpp" />
+    <ClCompile Include="sample_channels.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="sample_wait.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="coroutines">
@@ -56,5 +58,6 @@
     <ClInclude Include="..\coroutines\io_address.h">
       <Filter>coroutines</Filter>
     </ClInclude>
+    <ClInclude Include="sample.h" />
   </ItemGroup>
 </Project>
