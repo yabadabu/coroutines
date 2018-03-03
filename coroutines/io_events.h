@@ -41,7 +41,9 @@ namespace Coroutines {
       SOCKET_ID    max_fd = 0;
       VDescriptors entries;
 
-      fd_set       rfds, wfds;
+      fd_set       rfds;
+      fd_set       wfds;
+      fd_set       err_fds;
 
       TEntry* find(SOCKET_ID fd) {
         for (auto& e : entries) {
@@ -59,6 +61,7 @@ namespace Coroutines {
       TIOEvents() {
         FD_ZERO(&rfds);
         FD_ZERO(&wfds);
+        FD_ZERO(&err_fds);
       }
 
       enum eMode {

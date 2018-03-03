@@ -299,25 +299,32 @@ namespace Coroutines {
 
     // Attach to event watchers
     while (n--) {
-      if (we->event_type == EVT_CHANNEL_CAN_PULL)
+      switch (we->event_type) {
+
+      case EVT_CHANNEL_CAN_PULL: 
         we->channel.channel->waiting_for_pull.append(we);
-      else
-      if (we->event_type == EVT_CHANNEL_CAN_PUSH)
+        break;
+
+      case EVT_CHANNEL_CAN_PUSH:
         we->channel.channel->waiting_for_push.append(we);
-      else
-      if (we->event_type == EVT_COROUTINE_ENDS) {
+        break;
+
+      case EVT_COROUTINE_ENDS: {
         // Check if the handle that we want to wait, still exists
         auto co_to_wait = internal::byHandle(we->coroutine.handle);
         if (co_to_wait)
           co_to_wait->waiting_for_me.append(we);
-      }
-      else if (we->event_type == EVT_SOCKET_IO_CAN_READ) {
+        break; }
+
+      case EVT_SOCKET_IO_CAN_READ:
         internal::io_events.add(we);
-      }
-      else if (we->event_type == EVT_SOCKET_IO_CAN_WRITE) {
+        break;
+
+      case EVT_SOCKET_IO_CAN_WRITE:
         internal::io_events.add(we);
-      }
-      else {
+        break;
+
+      default:
         // Unsupported event type
         assert(false);
       }
@@ -354,28 +361,37 @@ namespace Coroutines {
     n = 0; ;
     we = watched_events;
     while (n <  nwatched_events) {
-      if (we->event_type == EVT_CHANNEL_CAN_PULL)
+      switch (we->event_type) {
+
+      case EVT_CHANNEL_CAN_PULL:
         we->channel.channel->waiting_for_pull.detach(we);
-      else if (we->event_type == EVT_CHANNEL_CAN_PUSH)
+        break;
+
+      case EVT_CHANNEL_CAN_PUSH:
         we->channel.channel->waiting_for_push.detach(we);
-      else 
-      if (we->event_type == EVT_COROUTINE_ENDS) {
+        break;
+
+      case EVT_COROUTINE_ENDS: {
         // The coroutine we were waiting for is already gone, but 
         // we might be waiting for several co's to finish
         auto co_to_wait = internal::byHandle(we->coroutine.handle);
         if (co_to_wait)
           co_to_wait->waiting_for_me.detach(we);
-      }
-      else if (we->event_type == EVT_SOCKET_IO_CAN_READ) {
+        break; }
+
+      case EVT_SOCKET_IO_CAN_READ:
         internal::io_events.del(we);
-      }
-      else if (we->event_type == EVT_SOCKET_IO_CAN_WRITE) {
+        break;
+
+      case EVT_SOCKET_IO_CAN_WRITE:
         internal::io_events.del(we);
-      }
-      else {
+        break;
+
+      default:
         // Unsupported event type
         assert(false);
       }
+
       if (co->event_waking_me_up == we)
         event_idx = n;
       ++we;
@@ -419,10 +435,13 @@ namespace Coroutines {
       FD_SET(fd, &wfds);
     }
 
+    FD_SET(fd, &err_fds);
+
     if (fd > max_fd)
       max_fd = fd;
   }
 
+  // ---------------------------------------------------
   void internal::TIOEvents::del(TWatchedEvent* we) {
 
     assert(we);
@@ -447,6 +466,8 @@ namespace Coroutines {
       FD_CLR(fd, &wfds);
       e->waiting_to_write.detach(we);
     }
+
+    FD_CLR(fd, &err_fds);
 
     assert(e && e->fd == fd);
 
@@ -477,13 +498,15 @@ namespace Coroutines {
     tm.tv_usec = 0;
 
     fd_set fds_to_read, fds_to_write;
+    fd_set fds_with_err;
 
     memcpy(&fds_to_read, &rfds, sizeof(fd_set));
     memcpy(&fds_to_write, &wfds, sizeof(fd_set));
+    memcpy(&fds_with_err, &err_fds, sizeof(fd_set));
 
     // Do a real wait
     int num_events = 0;
-    auto retval = ::select((int)(max_fd + 1), &fds_to_read, &fds_to_write, nullptr, &tm);
+    auto retval = ::select((int)(max_fd + 1), &fds_to_read, &fds_to_write, &fds_with_err, &tm);
     if (retval > 0) {
 
       for (auto& e : entries) {
@@ -492,7 +515,7 @@ namespace Coroutines {
           continue;
 
         // we were waiting a read op, and we can read now...
-        if ((e.mask & TO_READ) && FD_ISSET(e.fd, &fds_to_read)) {
+        if ((e.mask & TO_READ) && FD_ISSET(e.fd, &fds_to_read) || FD_ISSET(e.fd, &fds_with_err)) {
           auto we = e.waiting_to_read.detachFirst< TWatchedEvent >();
           if (we) {
             assert(we->io.fd == e.fd);
@@ -501,7 +524,7 @@ namespace Coroutines {
           }
         }
 
-        if ((e.mask & TO_WRITE) && FD_ISSET(e.fd, &fds_to_write)) {
+        if ((e.mask & TO_WRITE) && FD_ISSET(e.fd, &fds_to_write) || FD_ISSET(e.fd, &fds_with_err)) {
           auto we = e.waiting_to_write.detachFirst< TWatchedEvent >();
           if (we) {
             assert(we->io.fd == e.fd);

@@ -73,6 +73,7 @@ namespace Coroutines {
     }
 
     TWatchedEvent(SOCKET_ID fd, eEventType evt) {
+      assert(evt == EVT_SOCKET_IO_CAN_READ || evt == EVT_SOCKET_IO_CAN_WRITE);
       event_type = evt;
       io.fd = fd;
       owner = current();

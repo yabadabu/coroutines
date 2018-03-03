@@ -17,7 +17,7 @@ static void runServer() {
   listenning_addr.fromAnyAddress(port);
 
   // Wait some time before starting the server
-  // wait(nullptr, 0, 1000);
+  wait(nullptr, 0, 1000);
 
   CIOChannel server;
   if (!server.listen(listenning_addr)) {
@@ -26,9 +26,10 @@ static void runServer() {
   }
   dbg("Server: Accepting connections.\n");
 
-  int max_clients = 1;
+  int max_clients = 2;
   int nclients = 0;
   while (nclients < max_clients) {
+
     CIOChannel client = server.accept();
     if (!client.isValid()) {
       dbg("Server: accept failed\n");
@@ -68,7 +69,7 @@ static void runClient(int max_id) {
   dbg("Client: Connecting to server\n");
 
   CIOChannel client;
-  if (!client.connect(addr, 1000)) {
+  if (!client.connect(addr, 100000)) {
     dbg("Client: Can't connect to server.\n");
     return;
   }
@@ -100,8 +101,8 @@ void sample_net() {
   int iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
 
   auto co_s = start( &runServer );
-  auto co_c1 = start([]() { runClient(3); });
-  auto co_c2 = start([]() { runClient(5); });
+  auto co_c1 = start([]() { runClient(1); });
+  auto co_c2 = start([]() { runClient(2); });
 
   int counter = 0;
   while (true) {

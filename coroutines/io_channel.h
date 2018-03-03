@@ -14,12 +14,22 @@ namespace Coroutines {
     bool       isValid() const { return fd != invalid_socket_id; }
     bool       listen(const TNetAddress& serving_addr);
     CIOChannel accept();
+
+    // Will block until the connection can be stablished
     bool       connect(const TNetAddress &remote_server, int timeout_sec);
-    // Will block until all bytes have been recv/sent
-    bool       recv(void* dest_buffer, size_t bytes_to_read) const;
+
+    // Will block until all bytes have been sent
+    // Returns true if all bytes could be send, or false if there was an error
     bool       send(const void* src_buffer, size_t bytes_to_send) const;
+
+    // Will block until all bytes have been recv
+    // Returns true if all bytes could be read, or false if there was an error
+    bool       recv(void* dest_buffer, size_t bytes_to_read) const;
+    
     // Will return -1 if no bytes can been read. Will block until something is read.
+    // Returns true if all bytes could be read, or false if there was an error
     int        recvUpTo(void* dest_buffer, size_t max_bytes_to_read) const;
+
     void       close();
 
     template< typename T >

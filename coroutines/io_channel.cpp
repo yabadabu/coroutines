@@ -1,8 +1,8 @@
 #include "coroutines/io_events.h"
 #include "coroutines/io_channel.h"
 
-//extern void dbg(const char *fmt, ...);
-#define dbg(...)
+extern void dbg(const char *fmt, ...);
+//#define dbg(...)
 
 #ifdef _WIN32
 
@@ -46,6 +46,7 @@ namespace Coroutines {
     return rc == 0;
   }
 
+  // ---------------------------------------------------------------------------
   bool CIOChannel::listen(const TNetAddress& serving_addr) {
     if (isValid())
       return false;
@@ -66,6 +67,7 @@ namespace Coroutines {
     return true;
   }
 
+  // ---------------------------------------------------------------------------
   CIOChannel CIOChannel::accept() {
     dbg("FD %d is accepting connections\n", fd);
 
@@ -93,6 +95,7 @@ namespace Coroutines {
     return CIOChannel();
   }
 
+  // ---------------------------------------------------------------------------
   bool CIOChannel::connect(const TNetAddress &remote_server, int timeout_sec) {
 
     auto new_fd = sys_socket(AF_INET, SOCK_STREAM, 0, 0);
@@ -112,7 +115,6 @@ namespace Coroutines {
           int n = wait(&we, 1);
           if (n == 0)
             break;
-          continue;
         }
       }
       else {
@@ -123,6 +125,7 @@ namespace Coroutines {
     return isValid();
   }
 
+  // ---------------------------------------------------------------------------
   void CIOChannel::close() {
     if (isValid()) {
       dbg("FD %d closed\n", fd);
@@ -131,6 +134,7 @@ namespace Coroutines {
     }
   }
 
+  // ---------------------------------------------------------------------------
   bool CIOChannel::recv(void* dest_buffer, size_t bytes_to_read) const {
     size_t total_bytes_read = 0;
     while (isValid()) {
@@ -158,6 +162,7 @@ namespace Coroutines {
     return false;
   }
 
+  // ---------------------------------------------------------------------------
   int CIOChannel::recvUpTo(void* dest_buffer, size_t bytes_to_read) const {
     while (isValid()) {
       auto new_bytes_read = sys_recv(fd, (char*)dest_buffer, (int)(bytes_to_read), 0);
@@ -177,6 +182,7 @@ namespace Coroutines {
     return -1;
   }
 
+  // ---------------------------------------------------------------------------
   bool CIOChannel::send(const void* src_buffer, size_t bytes_to_send) const {
     size_t total_bytes_sent = 0;
     while (isValid()) {
