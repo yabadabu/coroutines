@@ -44,8 +44,8 @@ int main(int argc, char** argv) {
   boot_time = now();
   //sample_wait();
   //sample_channels();
-  //sample_create();
-  sample_net();
+  sample_create();
+  //sample_net();
   return 0;
 }
 

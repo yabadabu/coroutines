@@ -40,6 +40,12 @@ namespace Coroutines {
       TWaitConditionFn          must_wait;
       TList                     waiting_for_me;
       TWatchedEvent*            event_waking_me_up = nullptr;      // Which event took us from the WAITING_FOR_EVENT
+      
+      // Waiting events info
+      TWatchedEvent             timeot_watched_event;
+      TTimeStamp                timeout_watching_events = Coroutines::no_timeout;  // 
+      TWatchedEvent*            watched_events = nullptr;
+      int                       nwatched_events = 0;
 
       // User entry point 
       TBootFn                   boot_fn;
@@ -189,6 +195,125 @@ namespace Coroutines {
       }
     }
 
+    // --------------------------------------------------------------
+    void registerToEvents(TCoro* co, TWatchedEvent* watched_events, int nwatched_events, TTimeDelta timeout) {
+      assert(co);
+
+      int n = nwatched_events;
+      auto we = watched_events;
+
+      // Attach to event watchers
+      while (n--) {
+        switch (we->event_type) {
+
+        case EVT_CHANNEL_CAN_PULL:
+          we->channel.channel->waiting_for_pull.append(we);
+          break;
+
+        case EVT_CHANNEL_CAN_PUSH:
+          we->channel.channel->waiting_for_push.append(we);
+          break;
+
+        case EVT_COROUTINE_ENDS: {
+          // Check if the handle that we want to wait, still exists
+          auto co_to_wait = internal::byHandle(we->coroutine.handle);
+          if (co_to_wait)
+            co_to_wait->waiting_for_me.append(we);
+          break; }
+
+        case EVT_SOCKET_IO_CAN_READ:
+          internal::io_events.add(we);
+          break;
+
+        case EVT_SOCKET_IO_CAN_WRITE:
+          internal::io_events.add(we);
+          break;
+
+        default:
+          // Unsupported event type
+          assert(false);
+        }
+        ++we;
+      }
+
+      // Do we have to install a timeout event watch?
+      if (timeout != no_timeout) {
+        assert(timeout >= 0);
+        co->timeot_watched_event = TWatchedEvent(timeout);
+        registerTimeoutEvent(&co->timeot_watched_event);
+      }
+
+      // Put ourselves to sleep
+      co->timeout_watching_events = timeout;
+      co->watched_events = watched_events;
+      co->nwatched_events = nwatched_events;
+      co->state = internal::TCoro::WAITING_FOR_EVENT;
+      co->event_waking_me_up = nullptr;
+    }
+
+    // --------------------------------------------------------------
+    int unregisterFromEvents(TCoro* co) {
+      assert(co);
+
+      int event_idx = 0;
+
+      // If we had programmed a timeout, remove it
+      if (co->timeout_watching_events != no_timeout) {
+        unregisterTimeoutEvent(&co->timeot_watched_event);
+        event_idx = wait_timedout;
+      }
+
+      // Detach from event watchers
+      auto we = co->watched_events;
+      int nwatched_events = co->nwatched_events;
+      int n = 0;
+      while (n <  nwatched_events) {
+        switch (we->event_type) {
+
+        case EVT_CHANNEL_CAN_PULL:
+          we->channel.channel->waiting_for_pull.detach(we);
+          break;
+
+        case EVT_CHANNEL_CAN_PUSH:
+          we->channel.channel->waiting_for_push.detach(we);
+          break;
+
+        case EVT_COROUTINE_ENDS: {
+          // The coroutine we were waiting for is already gone, but
+          // we might be waiting for several co's to finish
+          auto co_to_wait = internal::byHandle(we->coroutine.handle);
+          if (co_to_wait)
+            co_to_wait->waiting_for_me.detach(we);
+          break; }
+
+        case EVT_SOCKET_IO_CAN_READ:
+          internal::io_events.del(we);
+          break;
+
+        case EVT_SOCKET_IO_CAN_WRITE:
+          internal::io_events.del(we);
+          break;
+
+        default:
+          // Unsupported event type
+          assert(false);
+        }
+
+        if (co->event_waking_me_up == we)
+          event_idx = n;
+        ++we;
+        ++n;
+      }
+
+      co->timeout_watching_events = no_timeout;
+
+      // We are no longer waiting
+      if(co->state == TCoro::WAITING_FOR_EVENT )
+        co->state = internal::TCoro::RUNNING;
+
+      return event_idx;
+    }
+
   }
 
   // --------------------------
@@ -220,10 +345,11 @@ namespace Coroutines {
       return;
     if (h == current()) {
       assert(isHandle(h));
-      if( co  )
+      if (co)
         co->epilogue();
     }
     else {
+      internal::unregisterFromEvents(co);
       co->markAsFree();
       co->wakeOthersWaitingForMe();
     }
@@ -260,18 +386,18 @@ namespace Coroutines {
 
   // --------------------------------------------------------------
   int wait(TWatchedEvent* watched_events, int nwatched_events, TTimeDelta timeout) {
+    
+    // Main thread can't wait for other co to finish
     assert(isHandle(current()));
 
     auto co = internal::byHandle(current());
     assert(co);
 
-    int n = nwatched_events;
-    auto we = watched_events;
-
-    // Check if any of the wait conditions are false, so there is no need to enter in the wait
+    // First check if any of the wait conditions we can quickly test are false, so there is no need to enter in the wait
     // for event mode
     int idx = 0;
-    while (idx < n) {
+    while (idx < nwatched_events) {
+      auto we = watched_events + idx;
 
       switch (we->event_type) {
 
@@ -297,107 +423,14 @@ namespace Coroutines {
       ++idx;
     }
 
-    // Attach to event watchers
-    while (n--) {
-      switch (we->event_type) {
+    internal::registerToEvents(co, watched_events, nwatched_events, timeout);
 
-      case EVT_CHANNEL_CAN_PULL: 
-        we->channel.channel->waiting_for_pull.append(we);
-        break;
-
-      case EVT_CHANNEL_CAN_PUSH:
-        we->channel.channel->waiting_for_push.append(we);
-        break;
-
-      case EVT_COROUTINE_ENDS: {
-        // Check if the handle that we want to wait, still exists
-        auto co_to_wait = internal::byHandle(we->coroutine.handle);
-        if (co_to_wait)
-          co_to_wait->waiting_for_me.append(we);
-        break; }
-
-      case EVT_SOCKET_IO_CAN_READ:
-        internal::io_events.add(we);
-        break;
-
-      case EVT_SOCKET_IO_CAN_WRITE:
-        internal::io_events.add(we);
-        break;
-
-      default:
-        // Unsupported event type
-        assert(false);
-      }
-      ++we;
-    }
-
-    // Do we have to install a timeout event watch?
-    TWatchedEvent time_we;
-    if (timeout != no_timeout) {
-      assert(timeout >= 0);
-      time_we = TWatchedEvent(timeout);
-      registerTimeoutEvent(&time_we);
-    }
-
-    // Put ourselves to sleep
-    co->state = internal::TCoro::WAITING_FOR_EVENT;
-    co->event_waking_me_up = nullptr;
-    
     yield();
-
-    // After we wakeup, we should be ready to go
 
     // There should be a reason to exit the waiting_for_event
     assert(co->event_waking_me_up != nullptr);
-    int event_idx = 0;
 
-    // If we had programmed a timeout, remove it
-    if (timeout != no_timeout) {
-      unregisterTimeoutEvent(&time_we);
-      event_idx = wait_timedout;
-    }
-
-    // Detach from event watchers
-    n = 0; ;
-    we = watched_events;
-    while (n <  nwatched_events) {
-      switch (we->event_type) {
-
-      case EVT_CHANNEL_CAN_PULL:
-        we->channel.channel->waiting_for_pull.detach(we);
-        break;
-
-      case EVT_CHANNEL_CAN_PUSH:
-        we->channel.channel->waiting_for_push.detach(we);
-        break;
-
-      case EVT_COROUTINE_ENDS: {
-        // The coroutine we were waiting for is already gone, but 
-        // we might be waiting for several co's to finish
-        auto co_to_wait = internal::byHandle(we->coroutine.handle);
-        if (co_to_wait)
-          co_to_wait->waiting_for_me.detach(we);
-        break; }
-
-      case EVT_SOCKET_IO_CAN_READ:
-        internal::io_events.del(we);
-        break;
-
-      case EVT_SOCKET_IO_CAN_WRITE:
-        internal::io_events.del(we);
-        break;
-
-      default:
-        // Unsupported event type
-        assert(false);
-      }
-
-      if (co->event_waking_me_up == we)
-        event_idx = n;
-      ++we;
-      ++n;
-    }
-
+    int event_idx = internal::unregisterFromEvents(co);
     return event_idx;
   }
 

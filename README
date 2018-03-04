@@ -1,15 +1,16 @@
-This is a C++ wrapper to run coroutines using fcontext
+This is a C++ wrapper to run coroutines using fcontext as a switching platform.
 
 ** TODO
 
 - Add more examples
-- Confirm a co can abort itself, or another co.
 - Test in unix/osx 
-- Remove old entries from 'VDescriptors' at internal::TIOEvents
+- Remove old entries from 'VDescriptors' at internal::TIOEvents once done
 - Move TChannel/CIOHandle to handle-based resource
+- Allow user to create his own events, which when triggered will wake up
+- Wait for Barrier.
++ Confirm a co can abort itself, or another co.
 + Use proper real time for wait fn's. We have millisecond precision
 
-- Wait for Barrier.
 / allow a coroutine to abort it's current execution, or another co or main to abort any other co. Not tested
 * get/store use data pointer per co. No tiene sentido, ya tiene lambda args
 * Move vars to sched. Add a sched pointer to tcoro. Not needed unless we add threads

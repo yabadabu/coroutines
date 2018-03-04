@@ -2,7 +2,7 @@
 #include <cstdarg>
 #include <cstdio>
 #include <vector>
-#include "coroutines/coroutines.h"
+#include "sample.h"
 
 using namespace Coroutines;
 
@@ -56,7 +56,60 @@ static void doSpawner() {
 }
 
 // ----------------------------------------------------------
+void test_create_from_co() {
+  TSimpleDemo demo("test_create_from_co");
+  start( &doSpawner);
+}
+
+// ----------------------------------------------------------
+void test_self_destroy() {
+  TSimpleDemo demo("test_self_destroy");
+  auto co_main = start([]() {
+    auto co = start([]() {
+      dbg("Co1: Waiting for 1sec\n");
+      wait(nullptr, 0, 1000);
+      dbg("Co1: Waiting finished. Now self aborting\n");
+      exitCo();
+      dbg("Co1: This msg should not be printed\n");
+    });
+    dbg("Main will wait co\n");
+    wait(co);
+    dbg("Main goes on as co has been destroyed\n");
+  });
+}
+
+void simpleWait() {
+  dbg("Co1: Waiting for 2sec\n");
+  wait(nullptr, 0, 1000);
+  dbg("Co1: This msg should not be printed\n");
+}
+
+
+void test_co1_destroys_co2() {
+  TSimpleDemo demo("test_co1_destroys_co2");
+  auto co_main = start([]() {
+    auto co1 = start(simpleWait);
+
+    auto co2 = start([co1]() {
+      dbg("Co2: Waiting for 1sec\n");
+      wait(nullptr, 0, 1000);
+      dbg("Co2: Waiting finished. Now destroying co1\n");
+      exitCo(co1);
+      dbg("Co2: co1 Destroyed\n");
+      assert(!isHandle(co1));
+      assert(isHandle(current()));
+      wait(nullptr, 0, 500);
+    });
+    dbg("Main will wait co1 and co2\n");
+    waitAll({ co1, co2 });
+    dbg("Main goes on as co has been destroyed\n");
+  });
+}
+
+// ----------------------------------------------------------
 void sample_create() {
-  auto co_s = start( &doSpawner);
-  runUntilAllCoroutinesEnd();
+  for( int i=0; i<50; ++i )
+    test_co1_destroys_co2();
+  test_self_destroy();
+  //test_create_from_co();
 }
