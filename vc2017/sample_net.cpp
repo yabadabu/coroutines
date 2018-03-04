@@ -19,7 +19,9 @@ static void runServer() {
   listenning_addr.fromAnyAddress(port);
 
   // Wait some time before starting the server
+  dbg("Server: Doing a small pause of 1s\n");
   wait(nullptr, 0, 1000);
+  dbg("Server: Pause complete. listen..\n");
 
   CIOChannel server;
   if (!server.listen(listenning_addr)) {
@@ -108,5 +110,6 @@ void sample_net() {
   auto co_c1 = start([]() { runClient(1); });
   auto co_c2 = start([]() { runClient(2); });
 
+  dbg( "Waiting from main to finish...\n");
   runUntilAllCoroutinesEnd();
 }

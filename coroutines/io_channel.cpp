@@ -12,16 +12,13 @@ extern void dbg(const char *fmt, ...);
 #define sys_send                ::send
 #define sys_recv                ::recv
 #define sys_errno               ::WSAGetLastError()
-//#define sys_sendto(sock_id, data, data_bytes, flags, target_addr, sizeof_target_addr )        ::sendto( sock_id, (const char *)data, (int)data_bytes, flags, (const sockaddr *) target_addr, sizeof_target_addr )
-//#define sys_recvfrom(sock_id, data, data_bytes, flags, sender_addr, sizeof_sender_addr )      ::recvfrom( sock_id, (char *) data, (int)data_bytes, flags, (sockaddr*) sender_addr, sizeof_sender_addr )
 #define sys_close               ::closesocket
 #define sys_bind(id,addr,sz)    ::bind(id, (const sockaddr *) addr, sz )
-//#define sys_fcntl         ::ioctlsocket
 #define sys_accept(id,addr,sz)  ::accept( id, (sockaddr*) addr, sz )
 #define sys_listen              ::listen
-//#define sys_seterror(bytes,sys_errno)  
 
 #define SYS_ERR_WOULD_BLOCK      WSAEWOULDBLOCK
+#define SYS_ERR_CONN_IN_PROGRESS WSAEWOULDBLOCK
 
 #else
 
@@ -41,7 +38,9 @@ extern void dbg(const char *fmt, ...);
 #define sys_bind(id,addr,sz)    ::bind(id, (const sockaddr *) addr, sz )
 #define sys_accept(id,addr,sz)  ::accept( id, (sockaddr*) addr, (socklen_t*)sz )
 #define sys_listen              ::listen
-#define SYS_ERR_WOULD_BLOCK      EAGAIN
+
+#define SYS_ERR_WOULD_BLOCK      EWOULDBLOCK
+#define SYS_ERR_CONN_IN_PROGRESS EINPROGRESS
 
 #endif
 
@@ -59,6 +58,8 @@ namespace Coroutines {
     u_long iMode = 1;
     auto rc = ioctlsocket(fd, FIONBIO, &iMode);
 #endif
+    if( rc != 0 )
+      dbg( "Failed to set socket %d as non-blocking\n", fd );
     return rc == 0;
   }
 
@@ -99,7 +100,7 @@ namespace Coroutines {
           wait(&we, 1);
           continue;
         }
-        dbg("FD %d accept failed\n", fd);
+        dbg("FD %d accept failed (%08x vs %08x)\n", fd, sys_err, SYS_ERR_WOULD_BLOCK);
         // Other types of errors
         return CIOChannel();
       }
@@ -125,13 +126,14 @@ namespace Coroutines {
       int rc = sys_connect(fd, &remote_server.addr, sizeof(remote_server));
       if (rc < 0) {
         int sys_err = sys_errno;
-        if (sys_err == SYS_ERR_WOULD_BLOCK) {
+        if (sys_err == SYS_ERR_CONN_IN_PROGRESS) {
           dbg("FD %d waiting to connect\n", fd);
           TWatchedEvent we(fd, EVT_SOCKET_IO_CAN_WRITE);
           int n = wait(&we, 1);
           if (n == 0)
             break;
         }
+        dbg("FD %d connect rc = %d (%08x vs %08x)\n", fd, rc, sys_err, SYS_ERR_CONN_IN_PROGRESS );
       }
       else {
         break;
