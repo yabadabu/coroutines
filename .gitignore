@@ -2,3 +2,5 @@ vc2017/x64
 vc2017/*.opendb
 vc2017/*.db
 vc2017/.vs
+vc2017/objs
+vc2017/test
