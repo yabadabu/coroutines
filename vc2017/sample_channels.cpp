@@ -9,7 +9,6 @@ using namespace Coroutines;
 // ---------------------------------------------------------
 // Wait for any of the two coroutines to finish or timeout
 void test_channels() {
-  resetTimer();
   TSimpleDemo demo("test_channels");
 
   // to send/recv data between co's
@@ -30,7 +29,6 @@ void test_channels() {
     }
 
     dbg("co1 end\n");
-    assert(now() == 2);
   });
 
   // co2 produces 10 elems
@@ -49,7 +47,6 @@ void test_channels() {
     ch1->close();
 
     dbg("co2 ends\n");
-    assert(now() == 1 || now() == 2);
   });
 
   //for( int i=0; i<3; ++i )

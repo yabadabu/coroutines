@@ -2,12 +2,13 @@ This is a C++ wrapper to run coroutines using fcontext
 
 ** TODO
 
-- Use proper real time for wait fn's.
 - Add more examples
 - Confirm a co can abort itself, or another co.
 - Test in unix/osx 
+- Remove old entries from 'VDescriptors' at internal::TIOEvents
+- Move TChannel/CIOHandle to handle-based resource
++ Use proper real time for wait fn's. We have millisecond precision
 
-- Move TChannel to handle-based resource
 - Wait for Barrier.
 / allow a coroutine to abort it's current execution, or another co or main to abort any other co. Not tested
 * get/store use data pointer per co. No tiene sentido, ya tiene lambda args

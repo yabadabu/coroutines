@@ -5,6 +5,8 @@
 
 using namespace Coroutines;
 
+TTimeStamp boot_time;
+
 // --------------------------------------------------
 void dbg(const char *fmt, ...) {
   char buf[1024];
@@ -14,13 +16,15 @@ void dbg(const char *fmt, ...) {
   if (n < 0)
     buf[1023] = 0x00;
   va_end(ap);
-  printf("%04d:%02d.%02d %s", (int)now(), current().id, current().age, buf);
+  TTimeStamp time_since_boot = now() - boot_time;
+  long nsecs, nmsecs;
+  getSecondsAndMilliseconds(time_since_boot, &nsecs, &nmsecs);
+  printf("[%04d:%03d] %02d.%02d %s", (int)nsecs, (int)nmsecs, current().id, current().age, buf);
 }
 
 void runUntilAllCoroutinesEnd() {
   int counter = 0;
   while (true) {
-    updateCurrentTime(1);
     if (!executeActives())
       break;
     dbg("%d\r", counter++);
@@ -37,10 +41,11 @@ extern void sample_wait();
 
 // -----------------------------------------------------------
 int main(int argc, char** argv) {
-  sample_wait();
+  boot_time = now();
+  //sample_wait();
   //sample_channels();
   //sample_create();
-  //sample_net();
+  sample_net();
   return 0;
 }
 

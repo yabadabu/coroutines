@@ -29,21 +29,21 @@ void test_yield() {
 }
 
 // -----------------------------------------------------------
-void basic_wait_time(const char* title, int nsecs) {
-  dbg("%s boots. Will wait %d secs\n", title, nsecs);
-  wait(nullptr, 0, nsecs);
-  dbg("%s After waiting %d ticks we leave\n", title, nsecs);
+void basic_wait_time(const char* title, int milli_secs) {
+  dbg("%s boots. Will wait %d milli_secs\n", title, milli_secs);
+  wait(nullptr, 0, milli_secs);
+  dbg("%s After waiting %d ticks we leave\n", title, milli_secs);
 }
 
 void test_wait_time() {
   TScopedTime tm;
   {
     TSimpleDemo demo("test_wait_time");
-    auto co1 = start([]() { basic_wait_time("co1", 3); });
-    auto co2 = start([]() { basic_wait_time("co2", 5); });
+    auto co1 = start([]() { basic_wait_time("co1", 3000); });
+    auto co2 = start([]() { basic_wait_time("co2", 5000); });
   }
   auto elapsed = tm.elapsed();
-  assert(elapsed == 5);
+  assert(elapsed == 5000);
 }
 
 // -----------------------------------------------------------
@@ -52,16 +52,18 @@ void test_wait_all() {
   {
     TSimpleDemo demo("test_wait_all");
     auto co1 = start([]() {
-      auto coA = start([]() {basic_wait_time("A", 25); });
-      auto coB = start([]() {basic_wait_time("B", 10); });
-      auto coC = start([]() {basic_wait_time("C", 15); });
+      auto coA = start([]() {basic_wait_time("A", 2500); });
+      auto coB = start([]() {basic_wait_time("B", 1000); });
+      auto coC = start([]() {basic_wait_time("C", 1500); });
 
       // Waits for all co end before continuing...
       waitAll({ coA, coB, coC });
       dbg("waitAll continues...\n");
     });
   }
-  assert(tm.elapsed() == 27);
+  TTimeStamp elapsed = tm.elapsed();
+  dbg("waitAll expected to finish in %d msecs, and finished in %d...\n", 2500, elapsed );
+  assert( abs( (int)elapsed - 2500 ) < 10 );
 }
 
 // ---------------------------------------------------------

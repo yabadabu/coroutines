@@ -541,9 +541,8 @@ namespace Coroutines {
 
   // ----------------------------------------------------------
   int executeActives() {
-    
     internal::io_events.update();
-
+    checkTimeoutEvents();
     return internal::runActives();
   }
 

@@ -131,6 +131,8 @@ namespace Coroutines {
       dbg("FD %d closed\n", fd);
       sys_close(fd);
       fd = invalid_socket_id;
+
+      // Remove from entries...
     }
   }
 

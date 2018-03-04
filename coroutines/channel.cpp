@@ -13,7 +13,7 @@ namespace Coroutines {
       memcpy(addrOfItem((first_idx + nelems_stored) % max_elems), user_data, bytes_per_elem);
     ++nelems_stored;
 
-    // For each elem pushes, wakeup one waiter
+    // For each elem pushes, wakeup one waiter to pull
     auto we = waiting_for_pull.detachFirst< TWatchedEvent >();
     if (we) {
       assert(we->channel.channel == this);
@@ -32,7 +32,7 @@ namespace Coroutines {
     --nelems_stored;
     first_idx = (first_idx + 1) % max_elems;
 
-    // For each elem pushed, wakeup one waiter
+    // For each elem pulled, wakeup one waiter to push
     auto we = waiting_for_push.detachFirst< TWatchedEvent >();
     if (we) {
       assert(we->channel.channel == this);
