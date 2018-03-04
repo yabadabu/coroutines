@@ -99,9 +99,11 @@ static void runClient(int max_id) {
 // ----------------------------------------------------------
 void sample_net() {
 
+#ifdef _WIN32
   WSADATA wsaData;
   int iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
-
+#endif
+  
   auto co_s = start( &runServer );
   auto co_c1 = start([]() { runClient(1); });
   auto co_c2 = start([]() { runClient(2); });

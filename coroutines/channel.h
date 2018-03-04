@@ -2,8 +2,7 @@
 #define INC_COROUTINES_CHANNEL_H_
 
 #include <cinttypes>
-#include <cstring>         // memcpy
-#include "list.h"
+#include "coroutines.h"
 
 namespace Coroutines {
 

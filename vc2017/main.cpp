@@ -12,7 +12,7 @@ void dbg(const char *fmt, ...) {
   char buf[1024];
   va_list ap;
   va_start(ap, fmt);
-  int n = _vsnprintf_s(buf, sizeof(buf) - 1, fmt, ap);
+  int n = vsnprintf(buf, sizeof(buf) - 1, fmt, ap);
   if (n < 0)
     buf[1023] = 0x00;
   va_end(ap);
@@ -44,8 +44,8 @@ int main(int argc, char** argv) {
   boot_time = now();
   //sample_wait();
   //sample_channels();
-  sample_create();
-  //sample_net();
+  //sample_create();
+  sample_net();
   return 0;
 }
 

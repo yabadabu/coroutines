@@ -69,7 +69,7 @@ void test_wait_all() {
 // ---------------------------------------------------------
 // Wait while the key is not pressed 
 void waitKey(int c) {
-  wait([c]() { return (::GetAsyncKeyState(c) & 0x8000) == 0; });
+  wait([c]() { return !isKeyPressed(c); });
 }
 
 void test_wait_keys() {

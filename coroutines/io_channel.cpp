@@ -25,7 +25,23 @@ extern void dbg(const char *fmt, ...);
 
 #else
 
-#error need defintion for SYS_ERR_WOULD_BLOCK
+#include <sys/types.h>
+#include <sys/uio.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <arpa/inet.h>
+
+#define sys_socket(x,y,z,port)  ::socket( x, y, z )
+#define sys_connect(id,addr,sz) ::connect( id, (const sockaddr*) addr, sz )
+#define sys_send                ::send
+#define sys_recv                ::recv
+#define sys_errno               errno
+#define sys_close               ::close
+#define sys_bind(id,addr,sz)    ::bind(id, (const sockaddr *) addr, sz )
+#define sys_accept(id,addr,sz)  ::accept( id, (sockaddr*) addr, (socklen_t*)sz )
+#define sys_listen              ::listen
+#define SYS_ERR_WOULD_BLOCK      EAGAIN
 
 #endif
 

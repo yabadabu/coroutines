@@ -187,7 +187,7 @@ namespace Coroutines {
     void dump(const char* title) {
       //printf("Dump FirstFree: %d LastFree:%d FirstInUse:%d - LastInUse:%d %s\n", first_free, last_free, first_in_use, last_in_use, title);
       printf("Dump %s\n", title);
-      printf("  Size of Co(%ld)\n", (int)sizeof( TCoro ));
+      printf("  Size of Co(%d)\n", (int)sizeof( TCoro ));
       int idx = 0;
       for (auto& co : coros) {
         printf("%04x : state:%d\n", idx, co->state);
@@ -548,7 +548,7 @@ namespace Coroutines {
           continue;
 
         // we were waiting a read op, and we can read now...
-        if ((e.mask & TO_READ) && FD_ISSET(e.fd, &fds_to_read) || FD_ISSET(e.fd, &fds_with_err)) {
+        if (((e.mask & TO_READ) && FD_ISSET(e.fd, &fds_to_read)) || FD_ISSET(e.fd, &fds_with_err)) {
           auto we = e.waiting_to_read.detachFirst< TWatchedEvent >();
           if (we) {
             assert(we->io.fd == e.fd);
@@ -557,7 +557,7 @@ namespace Coroutines {
           }
         }
 
-        if ((e.mask & TO_WRITE) && FD_ISSET(e.fd, &fds_to_write) || FD_ISSET(e.fd, &fds_with_err)) {
+        if (((e.mask & TO_WRITE) && FD_ISSET(e.fd, &fds_to_write)) || FD_ISSET(e.fd, &fds_with_err)) {
           auto we = e.waiting_to_write.detachFirst< TWatchedEvent >();
           if (we) {
             assert(we->io.fd == e.fd);

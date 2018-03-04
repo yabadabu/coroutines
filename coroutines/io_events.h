@@ -16,7 +16,11 @@ typedef sockaddr_in      TSockAddress;
 
 #else     // -----------------------------------------------------------
 
+#include <sys/select.h>
+#include <sys/types.h>
+#include <netinet/in.h>
 typedef int              SOCKET_ID;
+typedef sockaddr_in      TSockAddress;
 
 #endif    // -----------------------------------------------------------
 

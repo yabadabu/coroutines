@@ -12,7 +12,7 @@ extern void runUntilAllCoroutinesEnd();
 
 void waitKeyPress(int c) {
   wait([c]() { 
-    return (::GetAsyncKeyState(c) & 0x0001) == 0; 
+    return !keyBecomesPressed(c); 
   });
 }
 
@@ -70,7 +70,7 @@ void test_self_destroy() {
       wait(nullptr, 0, 1000);
       dbg("Co1: Waiting finished. Now self aborting\n");
       exitCo();
-      dbg("Co1: This msg should not be printed\n");
+      dbg("Co1: selfdestroy. This msg should not be printed\n");
     });
     dbg("Main will wait co\n");
     wait(co);
@@ -78,10 +78,11 @@ void test_self_destroy() {
   });
 }
 
+// ----------------------------------------------------------
 void simpleWait() {
   dbg("Co1: Waiting for 2sec\n");
-  wait(nullptr, 0, 1000);
-  dbg("Co1: This msg should not be printed\n");
+  wait(nullptr, 0, 2000);
+  dbg("Co1: simpleWait This msg should not be printed as 2secs\n");
 }
 
 
@@ -108,7 +109,7 @@ void test_co1_destroys_co2() {
 
 // ----------------------------------------------------------
 void sample_create() {
-  for( int i=0; i<50; ++i )
+  for( int i=0; i<10; ++i )
     test_co1_destroys_co2();
   test_self_destroy();
   //test_create_from_co();
