@@ -3,6 +3,7 @@
 
 #include <cinttypes>
 #include <cassert>
+#include <cstring>
 #include <functional>
 
 namespace Coroutines {
