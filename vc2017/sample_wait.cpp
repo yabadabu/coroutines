@@ -43,7 +43,8 @@ void test_wait_time() {
     auto co2 = start([]() { basic_wait_time("co2", 5000); });
   }
   auto elapsed = tm.elapsed();
-  assert(elapsed == 5000);
+  dbg("test_wait_time expected to finish in %d msecs, and finished in %d...\n", 5000, elapsed );
+  assert( abs( (int)elapsed - 5004 ) < 5 );
 }
 
 // -----------------------------------------------------------
