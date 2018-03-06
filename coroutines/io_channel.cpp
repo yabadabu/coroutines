@@ -58,10 +58,20 @@ namespace Coroutines {
     u_long iMode = 1;
     auto rc = ioctlsocket(fd, FIONBIO, &iMode);
 #endif
-    if( rc != 0 )
-      dbg( "Failed to set socket %d as non-blocking\n", fd );
+    if (rc != 0)
+      dbg("Failed to set socket %d as non-blocking\n", fd);
     return rc == 0;
   }
+
+  // ---------------------------------------------------------------------------
+  int CIOChannel::getSocketError() {
+    // Confirm we are really connected by checking the socket error
+    int sock_err = 0;
+    socklen_t sock_err_sz = sizeof(sock_err);
+    int rc = getsockopt(fd, SOL_SOCKET, SO_ERROR, (char*)&sock_err, &sock_err_sz);
+    return sock_err;
+  }
+
 
   // ---------------------------------------------------------------------------
   bool CIOChannel::listen(const TNetAddress& serving_addr) {
@@ -107,7 +117,7 @@ namespace Coroutines {
       dbg("FD %d has accepted new client %d\n", fd, rc);
       CIOChannel new_client;
       new_client.fd = rc;
-    	new_client.setNonBlocking();
+      new_client.setNonBlocking();
       return new_client;
     }
     return CIOChannel();
@@ -123,11 +133,11 @@ namespace Coroutines {
 
     setNonBlocking();
 
-		if( 0 ) {
-			dbg( "SYS_ERR_WOULD_BLOCK = %08x\n", SYS_ERR_WOULD_BLOCK );
-			dbg( "SYS_ERR_CONN_IN_PROGRESS = %08x\n", SYS_ERR_CONN_IN_PROGRESS );
-			dbg( "SYS_ERR_CONN_REFUSED = %08x\n", ECONNREFUSED );
-		}
+    if (0) {
+      dbg("SYS_ERR_WOULD_BLOCK = %08x\n", SYS_ERR_WOULD_BLOCK);
+      dbg("SYS_ERR_CONN_IN_PROGRESS = %08x\n", SYS_ERR_CONN_IN_PROGRESS);
+      dbg("SYS_ERR_CONN_REFUSED = %08x\n", ECONNREFUSED);
+    }
 
     dbg("FD %d starting to connect\n", fd);
 
@@ -140,27 +150,32 @@ namespace Coroutines {
           int n = wait(&we, 1);
           if (n == 0) {
 
-						int sock_err = 0;
-					  socklen_t sock_err_sz = sizeof( sock_err );	
-						int getopt_rc = getsockopt( fd, SOL_SOCKET, SO_ERROR, &sock_err, &sock_err_sz );
+            // Confirm we are really connected by checking the socket error
+            int sock_err = getSocketError();
+            
+            // All ok, no errors
+            if (sock_err == 0) 
+              break;
 
-						if( getopt_rc == 0 && sock_err == 0 ) {
-            	break;
-						} else {
-							if( sock_err != ECONNREFUSED ) {
-								dbg( "connect.failed getsockopt( %d ) (err=%04x)\n", fd, sock_err );
-							}
-						}
-
-	  			}
+            // The expected error in this case is Conn Refused when there is no server
+            // in the remote address. Other erros, I prefer to report them
+            if (sock_err != ECONNREFUSED) 
+              dbg("connect.failed getsockopt( %d ) (err=%08x)\n", fd, sock_err);
+          }
         }
-        dbg("FD %d connect rc = %d (%08x vs %08x)\n", fd, rc, sys_err, SYS_ERR_CONN_IN_PROGRESS );
+        dbg("FD %d connect rc = %d (%08x vs %08x)\n", fd, rc, sys_err, SYS_ERR_CONN_IN_PROGRESS);
       }
       else {
+        // Connected without waiting
         break;
       }
     }
-    dbg("FD %d connected\n", fd);
+
+    // If we are not valid, the socket we created should be destroyed.
+    if (!isValid())
+      close();
+    else 
+      dbg("FD %d connected\n", fd);
     return isValid();
   }
 
@@ -177,14 +192,15 @@ namespace Coroutines {
 
   // ---------------------------------------------------------------------------
   bool CIOChannel::recv(void* dest_buffer, size_t bytes_to_read) const {
+    assert(bytes_to_read > 0);
     size_t total_bytes_read = 0;
     while (isValid()) {
-      auto new_bytes_read = sys_recv(fd, (char*)dest_buffer, (int)( bytes_to_read - total_bytes_read ), 0);
+      assert(bytes_to_read > total_bytes_read);
+      auto new_bytes_read = sys_recv(fd, (char*)dest_buffer, (int)(bytes_to_read - total_bytes_read), 0);
       if (new_bytes_read == -1) {
         int err = sys_errno;
         if (err == SYS_ERR_WOULD_BLOCK) {
           TWatchedEvent we(fd, EVT_SOCKET_IO_CAN_READ);
-          dbg("FD %d waiting to read\n", fd);
           wait(&we, 1);
         }
         else
@@ -194,9 +210,8 @@ namespace Coroutines {
         break;
       }
       else {
-        dbg("FD %d read %ld bytes\n", fd, new_bytes_read);
         total_bytes_read += new_bytes_read;
-        if(total_bytes_read == bytes_to_read)
+        if (total_bytes_read == bytes_to_read)
           return true;
       }
     }
@@ -225,12 +240,13 @@ namespace Coroutines {
 
   // ---------------------------------------------------------------------------
   bool CIOChannel::send(const void* src_buffer, size_t bytes_to_send) const {
+    assert(bytes_to_send > 0);
     size_t total_bytes_sent = 0;
     while (isValid()) {
-      auto bytes_sent = sys_send(fd, ((const char*)src_buffer) + total_bytes_sent, (int) ( bytes_to_send - total_bytes_sent ), 0);
+      assert(bytes_to_send > total_bytes_sent);
+      auto bytes_sent = sys_send(fd, ((const char*)src_buffer) + total_bytes_sent, (int)(bytes_to_send - total_bytes_sent), 0);
       if (bytes_sent == -1) {
         if (errno == SYS_ERR_WOULD_BLOCK) {
-          dbg("FD %d waiting to write\n", fd);
           TWatchedEvent we(fd, EVT_SOCKET_IO_CAN_WRITE);
           wait(&we, 1);
         }

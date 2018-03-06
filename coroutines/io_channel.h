@@ -10,6 +10,7 @@ namespace Coroutines {
     static const SOCKET_ID invalid_socket_id = ~(SOCKET_ID(0));
     SOCKET_ID  fd = invalid_socket_id;
     bool       setNonBlocking();
+    int        getSocketError();
   public:
     bool       isValid() const { return fd != invalid_socket_id; }
     bool       listen(const TNetAddress& serving_addr);
