@@ -44,7 +44,6 @@ extern void dbg(const char *fmt, ...);
 
 #endif
 
-
 namespace Coroutines {
 
   bool CIOChannel::setNonBlocking() {
@@ -110,7 +109,7 @@ namespace Coroutines {
           wait(&we, 1);
           continue;
         }
-        dbg("FD %d accept failed (%08x vs %08x)\n", fd, sys_err, SYS_ERR_WOULD_BLOCK);
+        dbg("FD %d accept failed (%08x %s)\n", fd, sys_err, strerror(sys_err) );
         // Other types of errors
         return CIOChannel();
       }
@@ -132,12 +131,6 @@ namespace Coroutines {
     fd = new_fd;
 
     setNonBlocking();
-
-    if (0) {
-      dbg("SYS_ERR_WOULD_BLOCK = %08x\n", SYS_ERR_WOULD_BLOCK);
-      dbg("SYS_ERR_CONN_IN_PROGRESS = %08x\n", SYS_ERR_CONN_IN_PROGRESS);
-      dbg("SYS_ERR_CONN_REFUSED = %08x\n", ECONNREFUSED);
-    }
 
     dbg("FD %d starting to connect\n", fd);
 
@@ -162,8 +155,9 @@ namespace Coroutines {
             if (sock_err != ECONNREFUSED) 
               dbg("connect.failed getsockopt( %d ) (err=%08x)\n", fd, sock_err);
           }
+          continue;
         }
-        dbg("FD %d connect rc = %d (%08x vs %08x)\n", fd, rc, sys_err, SYS_ERR_CONN_IN_PROGRESS);
+        dbg("FD %d connect rc = %d (%08x %s)\n", fd, rc, sys_err, strerror( sys_err ));
       }
       else {
         // Connected without waiting
