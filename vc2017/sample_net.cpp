@@ -1,4 +1,3 @@
-#define _CRT_SECURE_NO_WARNINGS
 #include <cstdarg>
 #include <cstdio>
 #include <vector>
@@ -8,9 +7,6 @@
 
 using namespace Coroutines;
 using Coroutines::wait;
-
-extern void dbg(const char *fmt, ...);
-extern void runUntilAllCoroutinesEnd();
 
 int port = 8081;
 

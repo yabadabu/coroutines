@@ -1,4 +1,3 @@
-#define _CRT_SECURE_NO_WARNINGS
 #include <cstdarg>
 #include <cstdio>
 #include <vector>
@@ -7,9 +6,7 @@
 using namespace Coroutines;
 using Coroutines::wait;
 
-extern void dbg(const char *fmt, ...);
 extern void waitKeyPress(int c);
-extern void runUntilAllCoroutinesEnd();
 
 void waitKeyPress(int c) {
   wait([c]() { 

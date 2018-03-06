@@ -19,7 +19,7 @@ void dbg(const char *fmt, ...) {
   TTimeStamp time_since_boot = now() - boot_time;
   long nsecs, nmsecs;
   getSecondsAndMilliseconds(time_since_boot, &nsecs, &nmsecs);
-  printf("[%04d:%03d:%05x] %02d.%02d %s", (int)nsecs, (int)nmsecs, (int)getNumLoops(), current().id, current().age, buf);
+  printf("[%04d.%03d:%05x] %02d.%02d %s", (int)nsecs, (int)nmsecs, (int)getNumLoops(), current().id, current().age, buf);
 }
 
 void runUntilAllCoroutinesEnd() {

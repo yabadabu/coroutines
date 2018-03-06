@@ -109,7 +109,7 @@ namespace Coroutines {
           wait(&we, 1);
           continue;
         }
-        dbg("FD %d accept failed (%08x %s)\n", fd, sys_err, strerror(sys_err) );
+        dbg("FD %d accept failed (%08x)\n", fd, sys_err); // , strerror(sys_err) );
         // Other types of errors
         return CIOChannel();
       }
@@ -157,7 +157,7 @@ namespace Coroutines {
           }
           continue;
         }
-        dbg("FD %d connect rc = %d (%08x %s)\n", fd, rc, sys_err, strerror( sys_err ));
+        dbg("FD %d connect rc = %d (%08x)\n", fd, rc, sys_err); //, strerror(sys_err));
       }
       else {
         // Connected without waiting
