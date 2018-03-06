@@ -2,7 +2,7 @@ SRCS_PATHS = . ../coroutines
 SRCS = $(foreach p,$(SRCS_PATHS),$(wildcard $(p)/*.cpp))
 OBJS_PATH = objs
 OBJS = $(foreach f,$(SRCS),$(OBJS_PATH)/$(basename $(notdir $(f))).o)
-CFLAGS = -c -std=c++11 -I.. -O2
+CFLAGS = -c -std=c++11 -I..
 LNKFLAGS = -lstdc++ -lfcontext -lm
 CXX = clang
 

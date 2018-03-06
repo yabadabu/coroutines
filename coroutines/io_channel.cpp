@@ -107,6 +107,7 @@ namespace Coroutines {
       dbg("FD %d has accepted new client %d\n", fd, rc);
       CIOChannel new_client;
       new_client.fd = rc;
+    	new_client.setNonBlocking();
       return new_client;
     }
     return CIOChannel();
@@ -122,16 +123,36 @@ namespace Coroutines {
 
     setNonBlocking();
 
+		if( 0 ) {
+			dbg( "SYS_ERR_WOULD_BLOCK = %08x\n", SYS_ERR_WOULD_BLOCK );
+			dbg( "SYS_ERR_CONN_IN_PROGRESS = %08x\n", SYS_ERR_CONN_IN_PROGRESS );
+			dbg( "SYS_ERR_CONN_REFUSED = %08x\n", ECONNREFUSED );
+		}
+
+    dbg("FD %d starting to connect\n", fd);
+
     while (isValid()) {
       int rc = sys_connect(fd, &remote_server.addr, sizeof(remote_server));
       if (rc < 0) {
         int sys_err = sys_errno;
         if (sys_err == SYS_ERR_CONN_IN_PROGRESS) {
-          dbg("FD %d waiting to connect\n", fd);
           TWatchedEvent we(fd, EVT_SOCKET_IO_CAN_WRITE);
           int n = wait(&we, 1);
-          if (n == 0)
-            break;
+          if (n == 0) {
+
+						int sock_err = 0;
+					  socklen_t sock_err_sz = sizeof( sock_err );	
+						int getopt_rc = getsockopt( fd, SOL_SOCKET, SO_ERROR, &sock_err, &sock_err_sz );
+
+						if( getopt_rc == 0 && sock_err == 0 ) {
+            	break;
+						} else {
+							if( sock_err != ECONNREFUSED ) {
+								dbg( "connect.failed getsockopt( %d ) (err=%04x)\n", fd, sock_err );
+							}
+						}
+
+	  			}
         }
         dbg("FD %d connect rc = %d (%08x vs %08x)\n", fd, rc, sys_err, SYS_ERR_CONN_IN_PROGRESS );
       }
@@ -217,7 +238,7 @@ namespace Coroutines {
           break;
       }
       else {
-        dbg("FD %d sent %ld bytes\n", fd, bytes_sent);
+        //dbg("FD %d sent %ld bytes\n", fd, bytes_sent);
         total_bytes_sent += bytes_sent;
         if (total_bytes_sent == bytes_to_send)
           return true;

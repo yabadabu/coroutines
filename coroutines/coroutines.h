@@ -37,6 +37,7 @@ namespace Coroutines {
   
   // --------------------------------------------------
   int     executeActives();
+	size_t  getNumLoops();
 
   // --------------------------------------------------
   void    wakeUp(TWatchedEvent* we);

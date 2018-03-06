@@ -21,6 +21,7 @@ namespace Coroutines {
     std::vector< TCoro* >  coros;
     std::vector< THandle > coros_free;
     int runActives();
+		size_t                 num_loops = 0;
 
     // -----------------------------------------
     struct TCoro {
@@ -330,6 +331,10 @@ namespace Coroutines {
     return internal::start(std::forward<TBootFn>(user_fn));
   }
 
+	size_t getNumLoops() {
+		return internal::num_loops;
+	}
+
   // --------------------------------------------
   void yield() {
     assert(isHandle( current() ));
@@ -547,6 +552,10 @@ namespace Coroutines {
         if (!e.mask)
           continue;
 
+				if( FD_ISSET( e.fd, &fds_with_err )) {
+					printf( "Socket %d has errors\n", e.fd );
+				}
+
         // we were waiting a read op, and we can read now...
         if (((e.mask & TO_READ) && FD_ISSET(e.fd, &fds_to_read)) || FD_ISSET(e.fd, &fds_with_err)) {
           auto we = e.waiting_to_read.detachFirst< TWatchedEvent >();
@@ -574,6 +583,7 @@ namespace Coroutines {
 
   // ----------------------------------------------------------
   int executeActives() {
+		internal::num_loops++;
     internal::io_events.update();
     checkTimeoutEvents();
     return internal::runActives();

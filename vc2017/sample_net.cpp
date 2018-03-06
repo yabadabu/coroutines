@@ -4,8 +4,10 @@
 #include <vector>
 #include "coroutines/coroutines.h"
 #include "coroutines/io_channel.h"
+#include "sample.h"
 
 using namespace Coroutines;
+using Coroutines::wait;
 
 extern void dbg(const char *fmt, ...);
 extern void runUntilAllCoroutinesEnd();
@@ -59,7 +61,7 @@ static void runServer() {
     ++nclients;
   }
 
-  dbg("Server: Closing\n");
+  dbg("Server: Closing server socket\n");
   server.close();
 
 }
@@ -71,6 +73,8 @@ static void runClient(int max_id) {
   TNetAddress addr;
   addr.fromStr("127.0.0.1", port);
   dbg("Client: Connecting to server\n");
+
+  //wait(nullptr, 0, 1000);
 
   CIOChannel client;
   if (!client.connect(addr, 1000)) {
@@ -105,11 +109,14 @@ void sample_net() {
   WSADATA wsaData;
   int iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
 #endif
-  
-  auto co_s = start( &runServer );
-  auto co_c1 = start([]() { runClient(1); });
-  auto co_c2 = start([]() { runClient(2); });
 
-  dbg( "Waiting from main to finish...\n");
-  runUntilAllCoroutinesEnd();
+	{
+		TSimpleDemo( "sample_net" );
+		auto co_s = start( &runServer );
+		auto co_c1 = start([]() { runClient(1); });
+		auto co_c2 = start([]() { runClient(2); });
+		dbg( "co_s is %08x\n", co_s.asUnsigned() );
+		runUntilAllCoroutinesEnd();
+	}
+	dbg( "sample_net complete\n" );
 }

@@ -5,6 +5,7 @@
 #include "sample.h"
 
 using namespace Coroutines;
+using Coroutines::wait;
 
 extern void dbg(const char *fmt, ...);
 extern void waitKeyPress(int c);
