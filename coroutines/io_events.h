@@ -12,7 +12,6 @@
 #include <ws2tcpip.h>
 
 typedef SOCKET           SOCKET_ID;
-typedef sockaddr_in      TSockAddress;
 
 #else     // -----------------------------------------------------------
 
@@ -20,7 +19,6 @@ typedef sockaddr_in      TSockAddress;
 #include <sys/types.h>
 #include <netinet/in.h>
 typedef int              SOCKET_ID;
-typedef sockaddr_in      TSockAddress;
 
 #endif    // -----------------------------------------------------------
 

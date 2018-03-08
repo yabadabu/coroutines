@@ -78,17 +78,18 @@ namespace Coroutines {
     if (isValid())
       return false;
 
-    int s = -1, rv;
-    char _port[8];
+    SOCKET_ID s = invalid_socket_id;
+    char port_str[8];
     struct addrinfo hints, *servinfo, *p;
 
-    snprintf(_port, 6, "%d", port);
+    snprintf(port_str, sizeof(port_str)-1, "%d", port);
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = af;
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_flags = AI_PASSIVE;    // No effect if bindaddr != NULL
 
-    if ((rv = getaddrinfo(bind_addr, _port, &hints, &servinfo)) != 0)
+    int rc;
+    if ((rc = getaddrinfo(bind_addr, port_str, &hints, &servinfo)) != 0)
       return false;
 
     for (p = servinfo; p != NULL; p = p->ai_next) {
