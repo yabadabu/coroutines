@@ -7,6 +7,7 @@ This is a C++ wrapper to run coroutines using fcontext as a switching platform.
 - Move TChannel/CIOHandle to handle-based resource
 - Allow user to create his own events, which when triggered will wake up
 - Wait for Barrier.
++ Support for IPv6
 + Test in unix/osx 
 + Confirm a co can abort itself, or another co.
 + Use proper real time for wait fn's. We have millisecond precision
