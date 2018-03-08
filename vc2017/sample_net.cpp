@@ -13,9 +13,6 @@ int port = 8081;
 // ---------------------------------------------------------
 static void runServer() {
 
-  TNetAddress listenning_addr;
-  listenning_addr.fromAnyAddress(port);
-
   // Wait some time before starting the server
   dbg("Server: Doing a small pause of 1s\n");
   wait(nullptr, 0, 1000);

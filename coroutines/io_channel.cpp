@@ -9,12 +9,12 @@ extern void dbg(const char *fmt, ...);
 
 #pragma comment(lib, "Ws2_32.lib")
 #define sys_socket(x,y,z,port)	::socket( x, y, z )
-#define sys_connect(id,addr,sz) ::connect( id, (const sockaddr*) addr, sz )
+#define sys_connect(id,addr,sz) ::connect( id, (const sockaddr*) addr, (int)sz )
 #define sys_send                ::send
 #define sys_recv                ::recv
 #define sys_errno               ::WSAGetLastError()
 #define sys_close               ::closesocket
-#define sys_bind(id,addr,sz)    ::bind(id, (const sockaddr *) addr, sz )
+#define sys_bind(id,addr,sz)    ::bind(id, (const sockaddr *) addr, (int)sz )
 #define sys_accept(id,addr,sz)  ::accept( id, (sockaddr*) addr, sz )
 #define sys_listen              ::listen
 
@@ -299,28 +299,4 @@ namespace Coroutines {
     return false;
   }
 }
-
-// -----------------------------------------------
-// port and vport are in host format
-void TNetAddress::from(int port, unsigned ip4_in_host_format) {
-  assert(port > 0 && port < 65535);
-  memset(&addr, 0, sizeof(addr));
-  addr.sin_family = AF_INET;
-  addr.sin_addr.s_addr = htonl(ip4_in_host_format);
-  addr.sin_port = htons(port);
-}
-
-void TNetAddress::setPort(unsigned short new_app_port) {
-  addr.sin_port = htons(new_app_port);
-}
-
-void TNetAddress::fromAnyAddress(int port) {
-  from(port, INADDR_ANY);
-}
-
-bool TNetAddress::fromStr(const char *addr_str, int port) {
-  fromAnyAddress(port);
-  return inet_pton(AF_INET, addr_str, &addr.sin_addr) == 1;
-}
-
 

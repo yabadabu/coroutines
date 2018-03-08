@@ -167,7 +167,6 @@
     <ClInclude Include="..\coroutines\channel.h" />
     <ClInclude Include="..\coroutines\coroutines.h" />
     <ClInclude Include="..\coroutines\fcontext\fcontext.h" />
-    <ClInclude Include="..\coroutines\io_address.h" />
     <ClInclude Include="..\coroutines\io_channel.h" />
     <ClInclude Include="..\coroutines\io_events.h" />
     <ClInclude Include="..\coroutines\list.h" />

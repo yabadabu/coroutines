@@ -55,9 +55,6 @@
     <ClInclude Include="..\coroutines\io_channel.h">
       <Filter>coroutines</Filter>
     </ClInclude>
-    <ClInclude Include="..\coroutines\io_address.h">
-      <Filter>coroutines</Filter>
-    </ClInclude>
     <ClInclude Include="sample.h" />
   </ItemGroup>
 </Project>
