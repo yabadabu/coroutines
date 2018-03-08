@@ -22,7 +22,7 @@ static void runServer() {
   dbg("Server: Pause complete. listen..\n");
 
   CIOChannel server;
-  if (!server.listen(listenning_addr)) {
+  if (!server.listen("127.0.0.1", port, AF_INET)) {
     dbg("Server: Failed to start the server at port %d.\n", port);
     return;
   }
@@ -66,18 +66,18 @@ static void runServer() {
 // Connects, then send's an id, and recv another.
 static void runClient(int max_id) {
 
-  TNetAddress addr;
-  addr.fromStr("127.0.0.1", port);
-  dbg("Client: Connecting to server\n");
+  const char* addr = "127.0.0.1";
+  //addr = "::1";
+  dbg("Client: Connecting to server %s\n", addr);
 
   //wait(nullptr, 0, 1000);
 
   CIOChannel client;
-  if (!client.connect(addr, 1000)) {
-    dbg("Client: Can't connect to server.\n");
+  if (!client.connect(addr, port, 1000)) {
+    dbg("Client: Can't connect to server %s.\n", addr);
     return;
   }
-  dbg("Client: Connected to server.\n");
+  dbg("Client: Connected to server %s.\n", addr);
 
   int id = 0;
   while (id < max_id) {

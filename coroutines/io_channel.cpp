@@ -1,3 +1,4 @@
+#define _CRT_SECURE_NO_WARNINGS
 #include "coroutines/io_events.h"
 #include "coroutines/io_channel.h"
 
@@ -73,21 +74,41 @@ namespace Coroutines {
 
 
   // ---------------------------------------------------------------------------
-  bool CIOChannel::listen(const TNetAddress& serving_addr) {
+  bool CIOChannel::listen(const char* bind_addr, int port, int af) {
     if (isValid())
       return false;
 
-    auto new_fd = sys_socket(AF_INET, SOCK_STREAM, 0, 0);
-    if (new_fd < 0)
-      return false;
-    fd = new_fd;
+    int s = -1, rv;
+    char _port[8];
+    struct addrinfo hints, *servinfo, *p;
 
-    if (sys_bind(fd, &serving_addr, sizeof(serving_addr)) < 0)
+    snprintf(_port, 6, "%d", port);
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = af;
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_flags = AI_PASSIVE;    // No effect if bindaddr != NULL
+
+    if ((rv = getaddrinfo(bind_addr, _port, &hints, &servinfo)) != 0)
       return false;
 
-    if (sys_listen(fd, 5) < 0)
+    for (p = servinfo; p != NULL; p = p->ai_next) {
+
+      if ((s = sys_socket(p->ai_family, p->ai_socktype, p->ai_protocol, 0)) == -1)
+        continue;
+
+      if (sys_bind(s, p->ai_addr, p->ai_addrlen) >= 0) {
+        if (sys_listen(s, 5) >= 0)
+          break;
+      }
+
+      sys_close(s);
+    }
+
+    if (!p)
       return false;
 
+    freeaddrinfo(servinfo);
+    fd = s;
     setNonBlocking();
 
     return true;
@@ -98,9 +119,9 @@ namespace Coroutines {
     dbg("FD %d is accepting connections\n", fd);
 
     while (isValid()) {
-      TNetAddress remote_client_addr;
-      int remote_addr_sz = sizeof(remote_client_addr);
-      int rc = sys_accept(fd, &remote_client_addr.addr, &remote_addr_sz);
+      struct sockaddr_storage sa;
+      socklen_t sa_sz = sizeof(sa);
+      int rc = sys_accept(fd, &sa, &sa_sz);
       if (rc < 0) {
         int sys_err = sys_errno;
         if (sys_err == SYS_ERR_WOULD_BLOCK) {
@@ -123,53 +144,74 @@ namespace Coroutines {
   }
 
   // ---------------------------------------------------------------------------
-  bool CIOChannel::connect(const TNetAddress &remote_server, int timeout_sec) {
+  bool CIOChannel::connect(const char* addr, int port, int timeout_sec) {
 
-    auto new_fd = sys_socket(AF_INET, SOCK_STREAM, 0, 0);
-    if (new_fd < 0)
+    assert(addr);
+    assert(port > 0 && port < 65536);
+
+    // Convert port to string "8081"
+    char port_str[16];
+    snprintf(port_str, sizeof(port_str) - 1, "%d", port);
+
+    // Convert addr string to a list of address
+    // Prepare to hold 
+    struct addrinfo hints;
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;
+    struct addrinfo* host_info = nullptr;
+    int rc = getaddrinfo(addr, port_str, &hints, &host_info);
+    if (rc)
       return false;
-    fd = new_fd;
 
-    setNonBlocking();
+    // For each alternative proposed by getaddrinfo....
+    struct addrinfo* target_addr = host_info;
 
-    dbg("FD %d starting to connect\n", fd);
+    while (target_addr) {
 
-    while (isValid()) {
-      int rc = sys_connect(fd, &remote_server.addr, sizeof(remote_server));
-      if (rc < 0) {
-        int sys_err = sys_errno;
-        if (sys_err == SYS_ERR_CONN_IN_PROGRESS) {
-          TWatchedEvent we(fd, EVT_SOCKET_IO_CAN_WRITE);
-          int n = wait(&we, 1);
-          if (n == 0) {
+      // Create a socket of the family suggested
+      auto new_fd = sys_socket(target_addr->ai_family, target_addr->ai_socktype, target_addr->ai_protocol, 0);
+      if (new_fd < 0)
+        return false;
 
-            // Confirm we are really connected by checking the socket error
-            int sock_err = getSocketError();
-            
-            // All ok, no errors
-            if (sock_err == 0) 
-              break;
+      fd = new_fd;
+      if (setNonBlocking()) {
 
-            // The expected error in this case is Conn Refused when there is no server
-            // in the remote address. Other erros, I prefer to report them
-            if (sock_err != ECONNREFUSED) 
-              dbg("connect.failed getsockopt( %d ) (err=%08x)\n", fd, sock_err);
+        // Now connect to that address
+        int rc = sys_connect(fd, target_addr->ai_addr, target_addr->ai_addrlen);
+
+        if (rc < 0) {
+          int sys_err = sys_errno;
+          if (sys_err == SYS_ERR_CONN_IN_PROGRESS) {
+            dbg("FD %d waiting to connect\n", fd);
+            TWatchedEvent we(fd, EVT_SOCKET_IO_CAN_WRITE);
+            int n = wait(&we, 1);
+            if (n == 0) {
+
+              // Confirm we are really connected by checking the socket error
+              int sock_err = getSocketError();
+
+              // All ok, no errors
+              if (sock_err == 0)
+                break;
+
+              // The expected error in this case is Conn Refused when there is no server
+              // in the remote address. Other erros, I prefer to report them
+              if (sock_err != ECONNREFUSED)
+                dbg("connect.failed getsockopt( %d ) (err=%08x %s)\n", fd, sock_err, strerror( sock_err ));
+            }
           }
-          continue;
         }
-        dbg("FD %d connect rc = %d (%08x)\n", fd, rc, sys_err); //, strerror(sys_err));
       }
-      else {
-        // Connected without waiting
-        break;
-      }
+
+      sys_close(fd);
+
+      // Try next candidate
+      target_addr = target_addr->ai_next;
     }
 
-    // If we are not valid, the socket we created should be destroyed.
-    if (!isValid())
-      close();
-    else 
-      dbg("FD %d connected\n", fd);
+    freeaddrinfo(host_info);
+
     return isValid();
   }
 

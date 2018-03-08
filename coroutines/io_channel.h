@@ -13,11 +13,13 @@ namespace Coroutines {
     int        getSocketError();
   public:
     bool       isValid() const { return fd != invalid_socket_id; }
-    bool       listen(const TNetAddress& serving_addr);
+
+    // use ("127.0.0.1", port, AF_INET ) or ("::", port, AF_INET6)
+    bool       listen(const char* bind_addr, int port, int af);
     CIOChannel accept();
 
     // Will block until the connection can be stablished
-    bool       connect(const TNetAddress &remote_server, int timeout_sec);
+    bool       connect(const char* addr, int port, int timeout_sec);
 
     // Will block until all bytes have been sent
     // Returns true if all bytes could be send, or false if there was an error
