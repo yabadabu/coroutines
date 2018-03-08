@@ -10,14 +10,11 @@
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 #include <winsock2.h>             // fd_set Family
 #include <ws2tcpip.h>
-
 typedef SOCKET           SOCKET_ID;
-
+  
 #else     // -----------------------------------------------------------
 
 #include <sys/select.h>
-#include <sys/types.h>
-#include <netinet/in.h>
 typedef int              SOCKET_ID;
 
 #endif    // -----------------------------------------------------------
