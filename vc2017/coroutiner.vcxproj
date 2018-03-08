@@ -158,6 +158,7 @@
     <ClCompile Include="sample_channels.cpp" />
     <ClCompile Include="sample_create.cpp" />
     <ClCompile Include="sample_net.cpp" />
+    <ClCompile Include="sample_sync.cpp" />
     <ClCompile Include="sample_wait.cpp" />
   </ItemGroup>
   <ItemGroup>
