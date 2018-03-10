@@ -16,7 +16,7 @@ void dbg(const char *fmt, ...) {
   if (n < 0)
     buf[1023] = 0x00;
   va_end(ap);
-  TTimeStamp time_since_boot = now() - boot_time;
+  TTimeDelta time_since_boot = now() - boot_time;
   long nsecs, nmsecs;
   getSecondsAndMilliseconds(time_since_boot, &nsecs, &nmsecs);
   printf("[%04d.%03d:%05x] %02d.%02d %s", (int)nsecs, (int)nmsecs, (int)getNumLoops(), current().id, current().age, buf);
@@ -38,14 +38,22 @@ extern void sample_channels();
 extern void sample_net();
 extern void sample_create();
 extern void sample_wait();
+extern void sample_sync();
 
 // -----------------------------------------------------------
 int main(int argc, char** argv) {
+
+#ifdef _WIN32
+  WSADATA wsaData;
+  int iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
+#endif
+
   boot_time = now();
   //sample_wait();
   //sample_channels();
   //sample_create();
-  sample_net();
+  //sample_net();
+  sample_sync();
   return 0;
 }
 
