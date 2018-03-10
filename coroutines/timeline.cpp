@@ -37,7 +37,7 @@ namespace Coroutines {
   TTimeStamp current_timestamp;
   TList      waiting_for_timeouts;
 
-  void getSecondsAndMilliseconds(TTimeStamp ts, long* num_secs, long* num_millisecs) {
+  void getSecondsAndMilliseconds(TTimeDelta ts, long* num_secs, long* num_millisecs) {
     assert(num_secs && num_millisecs);
     *num_secs = (long) (ts / 1000);
     *num_millisecs = ts % 1000;
