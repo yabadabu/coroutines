@@ -120,6 +120,10 @@ namespace Coroutines {
 
     };
 
+    // Implemented in events.cpp
+    void attachToEvent(TEventID evt, TWatchedEvent* we);
+    void detachFromEvent(TEventID evt, TWatchedEvent* we);
+
     // ----------------------------------------------------------
     TCoro* byHandle(THandle h) {
 
@@ -230,6 +234,11 @@ namespace Coroutines {
           internal::io_events.add(we);
           break;
 
+        case EVT_USER_EVENT: {
+          assert(we->user_event.event_id);
+          internal::attachToEvent(we->user_event.event_id, we);
+          break; }
+
         default:
           // Unsupported event type
           assert(false);
@@ -294,6 +303,11 @@ namespace Coroutines {
         case EVT_SOCKET_IO_CAN_WRITE:
           internal::io_events.del(we);
           break;
+
+        case EVT_USER_EVENT: {
+          assert(we && we->user_event.event_id);
+          internal::detachFromEvent(we->user_event.event_id, we);
+          break; }
 
         default:
           // Unsupported event type
@@ -377,6 +391,11 @@ namespace Coroutines {
     yield();
   }
 
+  void wait(TEventID evt) {
+    TWatchedEvent we(evt);
+    wait(&we, 1);
+  }
+
   // Wait for another coroutine to finish
   // wait while h is a coroutine handle
   void wait(THandle h) {
@@ -384,9 +403,8 @@ namespace Coroutines {
     wait(&we, 1);
   }
 
-  // Wait until all coroutines have finished
-  void waitAll(std::initializer_list<THandle> handles) {
-    waitAll(handles.begin(), handles.end());
+  void waitAll() {
+
   }
 
   // --------------------------------------------------------------
@@ -418,6 +436,12 @@ namespace Coroutines {
 
       case EVT_COROUTINE_ENDS: {
         if (!isHandle(we->coroutine.handle))
+          return idx;
+        break; }
+
+      case EVT_USER_EVENT: {
+        assert(we && we->user_event.event_id);
+        if (isEventSet(we->user_event.event_id))
           return idx;
         break; }
 
@@ -552,9 +576,8 @@ namespace Coroutines {
         if (!e.mask)
           continue;
 
-				if( FD_ISSET( e.fd, &fds_with_err )) {
-					printf( "Socket %d has errors\n", e.fd );
-				}
+        if (FD_ISSET(e.fd, &fds_with_err))
+          printf("Socket %d has errors\n", (int)e.fd);
 
         // we were waiting a read op, and we can read now...
         if (((e.mask & TO_READ) && FD_ISSET(e.fd, &fds_to_read)) || FD_ISSET(e.fd, &fds_with_err)) {
