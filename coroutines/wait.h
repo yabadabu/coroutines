@@ -98,7 +98,7 @@ namespace Coroutines {
   // Will return the index of the event which wake up
   int wait(TWatchedEvent* watched_events, int nevents_to_watch, TTimeDelta timeout = no_timeout);
 
-  void wait(TWatchedEvent& watched_events);
+  void wait(TEventID evt);
 
   // Wait a user provided function.
   void wait(TWaitConditionFn fn);
@@ -107,20 +107,14 @@ namespace Coroutines {
   // wait while h is a coroutine handle
   void wait(THandle h);
 
-  // We want to wait all the items in a range... do it
-  template< typename iterator >
-  void waitAll(iterator beg, iterator end) {
-    while (beg != end) {
-      wait(*beg);
-      ++beg;
-    }
+  // Empty fallback
+  void waitAll();
+
+  template< typename A, typename ...Args >
+  void waitAll(A a, Args... args) {
+    wait(a);
+    waitAll(args...);
   }
-
-  // Wait until all coroutines have finished
-  void waitAll(std::initializer_list<THandle> handles);
-
-  // Wait until all watched events conditions trigger
-  void waitAll(std::initializer_list<TWatchedEvent> watched_events);
 
 }
 

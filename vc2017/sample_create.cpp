@@ -100,7 +100,7 @@ void test_co1_destroys_co2() {
       wait(nullptr, 0, 500);
     });
     dbg("Main will wait co1 and co2\n");
-    waitAll({ co1, co2 });
+    waitAll( co1, co2 );
     dbg("Main goes on as co has been destroyed\n");
   });
 }

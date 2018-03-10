@@ -58,7 +58,7 @@ void test_wait_all() {
       auto coC = start([]() {basic_wait_time("C", 1500); });
 
       // Waits for all co end before continuing...
-      waitAll({ coA, coB, coC });
+      waitAll( coA, coB, coC );
       dbg("waitAll continues...\n");
     });
   }
@@ -141,9 +141,10 @@ void test_user_events() {
 
   auto coB = start([evt1,evt2]() {
     
+    TWatchedEvent we[2];
     while (true) {
       int n = 0;
-      TWatchedEvent we[2];
+      // Register only to the active events
       if (!isEventSet(evt1))
         we[n++] = TWatchedEvent(evt1);
       if (!isEventSet(evt2))
@@ -159,21 +160,27 @@ void test_user_events() {
   });
 
   auto coB2 = start([evt1, evt2]() {
-    dbg("B2. I'm also waiting for the two events to be set\n");
-    waitAll({ evt1, evt2 });
+    dbg("B2. I'm waiting for the two events using waitAll\n");
+    waitAll(evt1, evt2);
     dbg("B2. Done\n");
   });
 
-  auto coC = start([coA, coB, coB2, evt1, evt2]() {
-    dbg("C. Waiting coA and coB to finish\n");
-    waitAll({ coA, coB, coB2 });
+  auto coB3 = start([coA, evt1]() {
+    dbg("B3. I'm waiting a mixing of coA and evt1\n");
+    waitAll(coA, evt1);
+    dbg("B3. Done\n");
+  });
+
+  auto coC = start([coA, coB, coB2, coB3, evt1, evt2]() {
+    dbg("C. Waiting for all co's to finish\n");
+    waitAll( coA, coB, coB2, coB3 );
+    // Clear the events
     destroyEvent(evt1);
     destroyEvent(evt2);
     assert(!isValidEvent(evt1));
     assert(!isValidEvent(evt2));
     dbg("C. All cleared\n");
   });
-
 
 }
 

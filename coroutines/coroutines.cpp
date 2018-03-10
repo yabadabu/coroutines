@@ -391,8 +391,9 @@ namespace Coroutines {
     yield();
   }
 
-  void wait(TWatchedEvent watched_events) {
-    wait(&watched_events, 1);
+  void wait(TEventID evt) {
+    TWatchedEvent we(evt);
+    wait(&we, 1);
   }
 
   // Wait for another coroutine to finish
@@ -402,16 +403,9 @@ namespace Coroutines {
     wait(&we, 1);
   }
 
-  // Wait until all coroutines have finished
-  void waitAll(std::initializer_list<THandle> handles) {
-    waitAll(handles.begin(), handles.end());
-  }
+  void waitAll() {
 
-  // Wait until all watched events conditions trigger
-  void waitAll(std::initializer_list<TWatchedEvent> watched_events) {
-    waitAll(watched_events.begin(), watched_events.end());
   }
-
 
   // --------------------------------------------------------------
   int wait(TWatchedEvent* watched_events, int nwatched_events, TTimeDelta timeout) {
