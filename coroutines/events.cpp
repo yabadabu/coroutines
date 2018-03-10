@@ -6,6 +6,7 @@ namespace Coroutines {
 
   namespace internal {
 
+    // Internal data associated to each event
     struct TEventData {
       TEventID     id = 0;
       bool         current_value = false;
@@ -13,9 +14,13 @@ namespace Coroutines {
       TList        waiting_for_me;
     };
 
+    // Container of all events 
     std::unordered_map< TEventID, TEventData > all_events;
+    
+    // EventID unique ID counter
     TEventID next_event_id = 1;
 
+    // Bind the evt with the watched event object
     void attachToEvent(TEventID evt, TWatchedEvent* we) {
       assert(we);
       auto it = all_events.find(evt);
@@ -24,6 +29,7 @@ namespace Coroutines {
       it->second.waiting_for_me.append(we);
     }
     
+    // Reverse the operation, we is no longer watching the evt
     void detachFromEvent(TEventID evt, TWatchedEvent* we) {
       assert(we);
       auto it = all_events.find(evt);
@@ -32,10 +38,17 @@ namespace Coroutines {
       it->second.waiting_for_me.detach(we);
     }
 
+    void wakeUpThoseWaitingForEvent(TEventData& ed) {
+      // Wake everybody who was waiting for the event to be set
+      while (auto we = ed.waiting_for_me.detachFirst< TWatchedEvent >())
+        wakeUp(we);
+    }
+
   }
 
   using namespace internal;
 
+  // Create a new entry & save the information
   TEventID createEvent(bool initial_value, const char* debug_name ) {
     TEventData ed;
     ed.id = next_event_id++;
@@ -45,6 +58,7 @@ namespace Coroutines {
     return ed.id;
   }
 
+  // By setting the event, everybody waiting for me is awakend
   bool setEvent(TEventID evt) {
     auto it = all_events.find(evt);
     if (it == all_events.end())
@@ -53,9 +67,7 @@ namespace Coroutines {
     
     ed.current_value = true;
 
-    // Wake everybody who was waiting the event to be set
-    while (auto we = ed.waiting_for_me.detachFirst< TWatchedEvent >())
-      wakeUp(we);
+    wakeUpThoseWaitingForEvent(ed);
 
     return true;
   }
@@ -79,6 +91,10 @@ namespace Coroutines {
     auto it = all_events.find(evt);
     if (it == all_events.end())
       return false;
+    
+    // Wake up anybody waiting for me
+    wakeUpThoseWaitingForEvent(it->second);
+
     all_events.erase(it);
     return true;
   }
