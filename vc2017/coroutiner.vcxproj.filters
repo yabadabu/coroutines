@@ -18,6 +18,9 @@
     <ClCompile Include="sample_channels.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="sample_wait.cpp" />
+    <ClCompile Include="..\coroutines\events.cpp">
+      <Filter>coroutines</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="coroutines">
@@ -56,5 +59,8 @@
       <Filter>coroutines</Filter>
     </ClInclude>
     <ClInclude Include="sample.h" />
+    <ClInclude Include="..\coroutines\events.h">
+      <Filter>coroutines</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

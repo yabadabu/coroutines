@@ -152,6 +152,7 @@
   <ItemGroup>
     <ClCompile Include="..\coroutines\channel.cpp" />
     <ClCompile Include="..\coroutines\coroutines.cpp" />
+    <ClCompile Include="..\coroutines\events.cpp" />
     <ClCompile Include="..\coroutines\io_channel.cpp" />
     <ClCompile Include="..\coroutines\timeline.cpp" />
     <ClCompile Include="main.cpp" />
@@ -166,6 +167,7 @@
   <ItemGroup>
     <ClInclude Include="..\coroutines\channel.h" />
     <ClInclude Include="..\coroutines\coroutines.h" />
+    <ClInclude Include="..\coroutines\events.h" />
     <ClInclude Include="..\coroutines\fcontext\fcontext.h" />
     <ClInclude Include="..\coroutines\io_channel.h" />
     <ClInclude Include="..\coroutines\io_events.h" />

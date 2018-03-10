@@ -122,11 +122,67 @@ void test_wait_2_coroutines_with_timeout() {
   });
 }
 
+// ---------------------------------------------------------
+// Wait for any of the two coroutines to finish or timeout
+void test_user_events() {
+  TSimpleDemo demo("test_user_events");
+
+  TEventID evt1 = createEvent();;
+  TEventID evt2 = createEvent();;
+
+  auto coA = start([evt1,evt2]() {
+    basic_wait_time("A2", 1000);
+    dbg("A. Setting evt2\n");
+    setEvent(evt2);
+    basic_wait_time("A1", 1000);
+    dbg("A. Setting evt1\n");
+    setEvent(evt1);
+  });
+
+  auto coB = start([evt1,evt2]() {
+    
+    while (true) {
+      int n = 0;
+      TWatchedEvent we[2];
+      if (!isEventSet(evt1))
+        we[n++] = TWatchedEvent(evt1);
+      if (!isEventSet(evt2))
+        we[n++] = TWatchedEvent(evt2);
+      if (!n)
+        break;
+      dbg("B. Waiting for %d events\n", n);
+      int idx = wait(we, n);
+      dbg("B. Event idx %d/%d triggered!\n", idx, n);
+    }
+
+    dbg("B. Done\n");
+  });
+
+  auto coB2 = start([evt1, evt2]() {
+    dbg("B2. I'm also waiting for the two events to be set\n");
+    waitAll({ evt1, evt2 });
+    dbg("B2. Done\n");
+  });
+
+  auto coC = start([coA, coB, coB2, evt1, evt2]() {
+    dbg("C. Waiting coA and coB to finish\n");
+    waitAll({ coA, coB, coB2 });
+    destroyEvent(evt1);
+    destroyEvent(evt2);
+    assert(!isValidEvent(evt1));
+    assert(!isValidEvent(evt2));
+    dbg("C. All cleared\n");
+  });
+
+
+}
+
 // ----------------------------------------------------------
 void sample_wait() {
-  test_yield();
-  test_wait_time();
-  test_wait_all();
-  test_wait_keys();
-  test_wait_2_coroutines_with_timeout();
+  test_user_events();
+  //test_yield();
+  //test_wait_time();
+  //test_wait_all();
+  //test_wait_keys();
+  //test_wait_2_coroutines_with_timeout();
 }
