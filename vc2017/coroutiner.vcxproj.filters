@@ -13,14 +13,15 @@
     <ClCompile Include="..\coroutines\io_channel.cpp">
       <Filter>coroutines</Filter>
     </ClCompile>
-    <ClCompile Include="sample_net.cpp" />
-    <ClCompile Include="sample_create.cpp" />
-    <ClCompile Include="sample_channels.cpp" />
-    <ClCompile Include="main.cpp" />
-    <ClCompile Include="sample_wait.cpp" />
     <ClCompile Include="..\coroutines\events.cpp">
       <Filter>coroutines</Filter>
     </ClCompile>
+    <ClCompile Include="sample_net.cpp" />
+    <ClCompile Include="sample_create.cpp" />
+    <ClCompile Include="sample_channels.cpp" />
+    <ClCompile Include="sample_wait.cpp" />
+    <ClCompile Include="sample_sync.cpp" />
+    <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="coroutines">

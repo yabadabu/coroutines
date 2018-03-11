@@ -41,6 +41,7 @@ namespace Coroutines {
     bool full() const { return nelems_stored == max_elems; }
     void close();
     size_t bytesPerElem() const { return bytes_per_elem; }
+    size_t size() const { return nelems_stored; }
 
     // Without blocking
     bool canPull() const { return !empty(); }

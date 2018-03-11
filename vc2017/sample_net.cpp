@@ -98,11 +98,6 @@ static void runClient(int max_id) {
 // ----------------------------------------------------------
 void sample_net() {
 
-#ifdef _WIN32
-  WSADATA wsaData;
-  int iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
-#endif
-
 	{
 		TSimpleDemo( "sample_net" );
 		auto co_s = start( &runServer );
