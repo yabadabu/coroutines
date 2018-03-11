@@ -41,6 +41,10 @@ namespace Coroutines {
         SOCKET_ID  fd;        // File descriptor
       } io;
 
+      struct {
+        TEventID    event_id;
+      } user_event;
+
     };
 
     // Specialized ctors
@@ -72,6 +76,12 @@ namespace Coroutines {
       owner = current();
     }
 
+    TWatchedEvent(TEventID evt) {
+      event_type = EVT_USER_EVENT;
+      user_event.event_id = evt;
+      owner = current();
+    }
+
     TWatchedEvent(SOCKET_ID fd, eEventType evt) {
       assert(evt == EVT_SOCKET_IO_CAN_READ || evt == EVT_SOCKET_IO_CAN_WRITE);
       event_type = evt;
@@ -88,6 +98,8 @@ namespace Coroutines {
   // Will return the index of the event which wake up
   int wait(TWatchedEvent* watched_events, int nevents_to_watch, TTimeDelta timeout = no_timeout);
 
+  void wait(TEventID evt);
+
   // Wait a user provided function.
   void wait(TWaitConditionFn fn);
 
@@ -95,17 +107,14 @@ namespace Coroutines {
   // wait while h is a coroutine handle
   void wait(THandle h);
 
-  // We want to wait all the items in a range... do it
-  template< typename iterator >
-  void waitAll(iterator beg, iterator end) {
-    while (beg != end) {
-      wait(*beg);
-      ++beg;
-    }
-  }
+  // Empty fallback
+  void waitAll();
 
-  // Wait until all coroutines have finished
-  void waitAll(std::initializer_list<THandle> handles);
+  template< typename A, typename ...Args >
+  void waitAll(A a, Args... args) {
+    wait(a);
+    waitAll(args...);
+  }
 
 }
 

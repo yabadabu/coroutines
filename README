@@ -4,16 +4,18 @@ This is a C++ wrapper to run coroutines using fcontext as a switching platform.
 
 - Add more examples
 - Remove old entries from 'VDescriptors' at internal::TIOEvents once done
-- Move TChannel/CIOHandle to handle-based resource
-- Allow user to create his own events, which when triggered will wake up
+- Move TChannel/CIOHandle to handle-based resource or simple identifiers
 - Wait for Barrier.
+- Wait for async file reads
+- Test poll, epoll
+- Add HTTP download
++ Allow user to create his own events, which when triggered will wake up
 + Support for IPv6
 + Test in unix/osx 
 + Confirm a co can abort itself, or another co.
 + Use proper real time for wait fn's. We have millisecond precision
 
-/ allow a coroutine to abort it's current execution, or another co or main to abort any other co. Not tested
-* get/store use data pointer per co. No tiene sentido, ya tiene lambda args
+* get/store use data pointer per co. Stored in the lambdas
 * Move vars to sched. Add a sched pointer to tcoro. Not needed unless we add threads
 
 - A co is:
@@ -59,17 +61,15 @@ This is a C++ wrapper to run coroutines using fcontext as a switching platform.
     - Need to know to which event sources they are subscribed
     - Need to be able to unsubscribe from all their event sources
 
-
 - If the 'watched event' is created in the stack, we don't need to malloc/free that memory
   Just be sure the events are unregistered when the thread continues
 - Add a next/prev link so the events can be anywhere
 - When a co wants to 'wait' for activity in two channels with a timer...
-    TEventWatch events_to_watch[3] = {
+    TEventWatch events_to_watch[2] = {
       { this_handle, EVT_CHANNEL_DATA_CAN_BE_READ, channel1, &data1, next? }
     , { this_handle, EVT_CHANNEL_DATA_CAN_BE_READ, channel2, &data2, next? }
-    , { this_handle, EVT_TIME, now() + 10 }
     };
-    wait( events_to_watch );
+    wait( events_to_watch, 2, 1000 );
 
 - co's are dispatched by several threads, not just one (a la ps4)
 - Check support for coroutine local storage (or cls())

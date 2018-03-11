@@ -58,7 +58,7 @@ void test_wait_all() {
       auto coC = start([]() {basic_wait_time("C", 1500); });
 
       // Waits for all co end before continuing...
-      waitAll({ coA, coB, coC });
+      waitAll( coA, coB, coC );
       dbg("waitAll continues...\n");
     });
   }
@@ -122,11 +122,74 @@ void test_wait_2_coroutines_with_timeout() {
   });
 }
 
+// ---------------------------------------------------------
+// Wait for any of the two coroutines to finish or timeout
+void test_user_events() {
+  TSimpleDemo demo("test_user_events");
+
+  TEventID evt1 = createEvent();;
+  TEventID evt2 = createEvent();;
+
+  auto coA = start([evt1,evt2]() {
+    basic_wait_time("A2", 1000);
+    dbg("A. Setting evt2\n");
+    setEvent(evt2);
+    basic_wait_time("A1", 1000);
+    dbg("A. Setting evt1\n");
+    setEvent(evt1);
+  });
+
+  auto coB = start([evt1,evt2]() {
+    
+    TWatchedEvent we[2];
+    while (true) {
+      int n = 0;
+      // Register only to the active events
+      if (!isEventSet(evt1))
+        we[n++] = TWatchedEvent(evt1);
+      if (!isEventSet(evt2))
+        we[n++] = TWatchedEvent(evt2);
+      if (!n)
+        break;
+      dbg("B. Waiting for %d events\n", n);
+      int idx = wait(we, n);
+      dbg("B. Event idx %d/%d triggered!\n", idx, n);
+    }
+
+    dbg("B. Done\n");
+  });
+
+  auto coB2 = start([evt1, evt2]() {
+    dbg("B2. I'm waiting for the two events using waitAll\n");
+    waitAll(evt1, evt2);
+    dbg("B2. Done\n");
+  });
+
+  auto coB3 = start([coA, evt1]() {
+    dbg("B3. I'm waiting a mixing of coA and evt1\n");
+    waitAll(coA, evt1);
+    dbg("B3. Done\n");
+  });
+
+  auto coC = start([coA, coB, coB2, coB3, evt1, evt2]() {
+    dbg("C. Waiting for all co's to finish\n");
+    waitAll( coA, coB, coB2, coB3 );
+    // Clear the events
+    destroyEvent(evt1);
+    destroyEvent(evt2);
+    assert(!isValidEvent(evt1));
+    assert(!isValidEvent(evt2));
+    dbg("C. All cleared\n");
+  });
+
+}
+
 // ----------------------------------------------------------
 void sample_wait() {
-  test_yield();
-  test_wait_time();
-  test_wait_all();
-  test_wait_keys();
-  test_wait_2_coroutines_with_timeout();
+  test_user_events();
+  //test_yield();
+  //test_wait_time();
+  //test_wait_all();
+  //test_wait_keys();
+  //test_wait_2_coroutines_with_timeout();
 }

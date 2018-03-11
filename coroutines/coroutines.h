@@ -48,6 +48,7 @@ namespace Coroutines {
 #include "list.h"
 #include "timeline.h"
 #include "io_events.h"
+#include "events.h"
 #include "wait.h"
 #include "channel.h"
 
