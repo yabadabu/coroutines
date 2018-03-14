@@ -12,7 +12,7 @@ namespace Coroutines {
   typedef uint64_t      u64;
   typedef uint8_t       u8;
 
-  class  TChannel;
+  class  TRawChannel;
   struct THandle;
   struct TWatchedEvent;
 

@@ -9,7 +9,7 @@ namespace Coroutines {
   typedef uint8_t u8;
 
   // ----------------------------------------
-  class TChannel {
+  class TRawChannel {
     size_t bytes_per_elem = 0;
     size_t max_elems      = 0;
     size_t nelems_stored  = 0;
@@ -26,21 +26,23 @@ namespace Coroutines {
   public:
     TList  waiting_for_push;
     TList  waiting_for_pull;
-
-  public:
-    TChannel() = default;
-    TChannel(size_t new_max_elems, size_t new_bytes_per_elem) {
+  
+  protected:
+    void pushBytes(const void* user_data, size_t user_data_size);
+    void pullBytes(void* user_data, size_t user_data_size);
+    TRawChannel() = default;
+    TRawChannel(size_t new_max_elems, size_t new_bytes_per_elem) {
       bytes_per_elem = new_bytes_per_elem;
       max_elems = new_max_elems;
       data = new u8[bytes_per_elem * max_elems];
     }
-    void push(const void* user_data, size_t user_data_size);
-    void pull(void* user_data, size_t user_data_size);
+
+  public:
+    size_t bytesPerElem() const { return bytes_per_elem; }
     bool closed() const { return is_closed; }
     bool empty() const { return nelems_stored == 0; }
     bool full() const { return nelems_stored == max_elems; }
     void close();
-    size_t bytesPerElem() const { return bytes_per_elem; }
     size_t size() const { return nelems_stored; }
 
     // Without blocking
@@ -49,36 +51,42 @@ namespace Coroutines {
   };
 
   // -----------------------------------------------------
-  // returns true if the object can be pulled
-  template< typename TObj >
-  bool pull(TChannel* ch, TObj& obj) {
-    assert(ch);
-    assert(&obj);
-    while (ch->empty() && !ch->closed()) {
-      TWatchedEvent evt(ch, obj, EVT_CHANNEL_CAN_PULL);
-      wait(&evt, 1);
+  template< typename T >
+  class TChannel : public TRawChannel {
+  public:
+    TChannel(size_t new_max_elems) :
+      TRawChannel(new_max_elems, sizeof(T))
+    {}
+    // returns true if the object can be pushed
+    bool push(const T& obj) {
+      assert(this);
+      assert(&obj);
+      while (full() && !closed()) {
+        TWatchedEvent evt(this, obj, EVT_CHANNEL_CAN_PUSH);
+        wait(&evt, 1);
+      }
+      if (closed())
+        return false;
+      pushBytes(&obj, sizeof(obj));
+      return true;
     }
 
-    if (ch->closed() && ch->empty())
-      return false;
-    ch->pull(&obj, sizeof(obj));
-    return true;
-  }
+    // returns true if the object can be pulled
+    bool pull(T& obj) {
+      assert(this);
+      assert(&obj);
+      while (empty() && !closed()) {
+        TWatchedEvent evt(this, obj, EVT_CHANNEL_CAN_PULL);
+        wait(&evt, 1);
+      }
 
-  // returns true if the object can be pushed
-  template< typename TObj >
-  bool push(TChannel* ch, const TObj& obj) {
-    assert(ch);
-    assert(&obj);
-    while (ch->full() && !ch->closed()) {
-      TWatchedEvent evt(ch, obj, EVT_CHANNEL_CAN_PUSH);
-      wait(&evt, 1);
+      if (closed() && empty())
+        return false;
+      pullBytes(&obj, sizeof(T));
+      return true;
     }
-    if (ch->closed())
-      return false;
-    ch->push(&obj, sizeof(obj));
-    return true;
-  }
+  };
+
 
 }
 

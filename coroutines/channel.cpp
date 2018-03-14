@@ -3,7 +3,7 @@
 
 namespace Coroutines {
 
-  void TChannel::push(const void* user_data, size_t user_data_size) {
+  void TRawChannel::pushBytes(const void* user_data, size_t user_data_size) {
     assert(user_data);
     assert(data);
     assert(nelems_stored < max_elems);
@@ -22,7 +22,7 @@ namespace Coroutines {
     }
   }
 
-  void TChannel::pull(void* user_data, size_t user_data_size) {
+  void TRawChannel::pullBytes(void* user_data, size_t user_data_size) {
     assert(data);
     assert(user_data);
     assert(nelems_stored > 0);
@@ -42,7 +42,7 @@ namespace Coroutines {
 
   }
 
-  void TChannel::close() { 
+  void TRawChannel::close() { 
     is_closed = true; 
     // Wake up all threads waiting for me...
     // Waiting for pushing...

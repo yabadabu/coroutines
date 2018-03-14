@@ -189,19 +189,19 @@ bool download(TDownloadTask* dt) {
 void test_download_in_parallel() {
   TSimpleDemo demo("test_download_in_parallel");
 
-  TChannel* ch_requests = new TChannel(10, sizeof(TDownloadTask*));
-  TChannel* ch_acc = new TChannel(10, sizeof(TDownloadTask*));
+  auto ch_requests = new TChannel<TDownloadTask*>(10);
+  auto ch_acc = new TChannel<TDownloadTask*>(10);
   bool      all_queued = false;
   int       ndownloads = 0;
 
   // Generate the requests from another co with some in the middle waits
   auto co_producer = start([ch_requests, &all_queued, &ndownloads]() {
-    push(ch_requests, new TDownloadTask("www.lavanguardia.com")); ++ndownloads;
+    ch_requests->push(new TDownloadTask("www.lavanguardia.com")); ++ndownloads;
     wait(nullptr, 0, 100);
-    push(ch_requests, new TDownloadTask("blog.selfshadow.com")); ++ndownloads;
-    push(ch_requests, new TDownloadTask("www.humus.name/index.php?page=News")); ++ndownloads;
+    ch_requests->push(new TDownloadTask("blog.selfshadow.com")); ++ndownloads;
+    ch_requests->push(new TDownloadTask("www.humus.name/index.php?page=News")); ++ndownloads;
     wait(nullptr, 0, 100);
-    push(ch_requests, new TDownloadTask("www.humus.name/index.php?page=3D")); ++ndownloads;
+    ch_requests->push(new TDownloadTask("www.humus.name/index.php?page=3D")); ++ndownloads;
     all_queued = true;
   });
 
@@ -211,11 +211,11 @@ void test_download_in_parallel() {
     auto h = start([ch_requests, ch_acc]() {
       // Take a download task from the channel while the channel is alive
       TDownloadTask* dt = nullptr;
-      while (pull(ch_requests, dt)) {
+      while (ch_requests->pull(dt)) {
         // Download it and..
         download(dt);
         // Queue to the next stage
-        push(ch_acc, dt);
+        ch_acc->push(dt);
       }
     });
   }
@@ -228,7 +228,7 @@ void test_download_in_parallel() {
     size_t ntasks = 0;
     size_t total_bytes = 0;
     TDownloadTask* dt = nullptr;
-    while ((ntasks < ndownloads || !all_queued ) && pull(ch_acc, dt)) {
+    while ((ntasks < ndownloads || !all_queued ) && ch_acc->pull(dt)) {
       assert(dt);
 
       // Accumulate some total bytes and max time

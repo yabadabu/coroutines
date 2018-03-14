@@ -23,9 +23,9 @@ namespace Coroutines {
     union {
 
       struct {
-        TChannel*  channel;
-        void*      data_addr;
-        size_t     data_size;
+        TRawChannel*  channel;
+        void*         data_addr;
+        size_t        data_size;
       } channel;
 
       struct {
@@ -52,7 +52,7 @@ namespace Coroutines {
 
     // Wait until the we can push/pull an item into/from that channel
     template< class TObj >
-    TWatchedEvent(TChannel* new_channel, const TObj &obj, eEventType evt)
+    TWatchedEvent(TRawChannel* new_channel, const TObj &obj, eEventType evt)
     {
       channel.channel = new_channel;
       channel.data_addr = (TObj*)&obj;

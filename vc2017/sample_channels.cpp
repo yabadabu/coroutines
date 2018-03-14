@@ -5,13 +5,15 @@
 
 using namespace Coroutines;
 
+typedef TChannel<int> IntsChannel;
+
 // ---------------------------------------------------------
 // Wait for any of the two coroutines to finish or timeout
 void test_channels() {
   TSimpleDemo demo("test_channels");
 
   // to send/recv data between co's
-  TChannel* ch1 = new TChannel(3, sizeof(int));
+  auto ch1 = new IntsChannel(3);
   dbg("ch is %p\n", ch1);
 
   // co1 consumes
@@ -22,7 +24,7 @@ void test_channels() {
       int data = 0;
       // if there is nothing it will block us until someone pushes something
       // or the channel is closed.
-      if (!pull(ch1, data))
+      if (!ch1->pull(data))
         break;
       dbg("co1 has pulled %d\n", data);
     }
@@ -38,7 +40,7 @@ void test_channels() {
     // yielding this co
     for (int i = 0; i < 5; ++i) {
       int v = 100 + i;
-      push(ch1, v);
+      ch1->push(v);
       dbg("co2 has pushed %d\n", v);
     }
 
@@ -59,7 +61,7 @@ void test_channels_send_from_main() {
   TSimpleDemo demo("test_channels");
 
   // send data between co's
-  TChannel* ch1 = new TChannel(5, sizeof(int));
+  auto ch1 = new IntsChannel(5);
   dbg("ch is %p\n", ch1);
   assert(ch1->bytesPerElem() == 4);
 
@@ -69,7 +71,7 @@ void test_channels_send_from_main() {
     assert(ch1->bytesPerElem() == 4);
     while (true) {
       int data = 0;
-      if (!pull(ch1, data))
+      if (!ch1->pull(data))
         break;
       dbg("co1 has pulled %d from %p\n", data, ch1);
     }
@@ -79,8 +81,8 @@ void test_channels_send_from_main() {
 
   int v = 100;
   dbg("Main pushes 100 twice and then closes\n");
-  push(ch1, v);
-  push(ch1, v);
+  ch1->push(v);
+  ch1->push(v);
   ch1->close();
 }
 
