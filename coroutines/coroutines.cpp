@@ -239,6 +239,10 @@ namespace Coroutines {
           internal::attachToEvent(we->user_event.event_id, we);
           break; }
 
+        case EVT_TIMEOUT: {
+          timeout = we->time.time_to_trigger - we->time.time_programmed;
+          break; }
+
         default:
           // Unsupported event type
           assert(false);
@@ -308,6 +312,9 @@ namespace Coroutines {
           assert(we && we->user_event.event_id);
           internal::detachFromEvent(we->user_event.event_id, we);
           break; }
+
+        case EVT_TIMEOUT:
+          break;
 
         default:
           // Unsupported event type

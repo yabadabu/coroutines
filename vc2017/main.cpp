@@ -39,6 +39,7 @@ extern void sample_net();
 extern void sample_create();
 extern void sample_wait();
 extern void sample_sync();
+extern void sample_go();
 
 // -----------------------------------------------------------
 int main(int argc, char** argv) {
@@ -53,7 +54,8 @@ int main(int argc, char** argv) {
   //sample_channels();
   //sample_create();
   //sample_net();
-  sample_sync();
+  //sample_sync();
+  sample_go();
   return 0;
 }
 

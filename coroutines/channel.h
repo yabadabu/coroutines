@@ -54,7 +54,7 @@ namespace Coroutines {
   template< typename T >
   class TChannel : public TRawChannel {
   public:
-    TChannel(size_t new_max_elems) :
+    TChannel(size_t new_max_elems = 1) :
       TRawChannel(new_max_elems, sizeof(T))
     {}
     // returns true if the object can be pushed
