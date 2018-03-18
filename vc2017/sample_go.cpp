@@ -195,12 +195,12 @@ StrChan* fanInSelect(StrChan* a, StrChan* b) {
 
 // -------------------------------------------
 template< typename T>
-struct ifCanPull {
+struct ifCanPullDef {
   TWatchedEvent                we;
   TChannel<T>*                 channel;
   T                            obj;
   std::function<void(T& obj)>  cb;
-  ifCanPull(TChannel<T>* new_channel, std::function< void(T) > new_cb)
+  ifCanPullDef(TChannel<T>* new_channel, std::function< void(T) > new_cb)
     : we(new_channel, obj, eEventType::EVT_CHANNEL_CAN_PULL)
     , channel(new_channel)
     , cb( new_cb )
@@ -210,6 +210,12 @@ struct ifCanPull {
     cb(obj);
   }
 };
+
+template< typename T, typename TFn >
+ifCanPullDef<T> ifCanPull(TChannel<T>* chan, TFn new_cb) {
+  return ifCanPullDef<T>(chan, new_cb);
+}
+
 
 struct ifTimeout {
   TWatchedEvent                we;
@@ -264,11 +270,11 @@ StrChan* fanInSelect2(StrChan* a, StrChan* b) {
       
       // Wait until we can 'read' from any of those channels
       int n = choose(
-        ifCanPull<const char*>(a, [c](auto msg)->void {
+        ifCanPull(a, [c](auto msg)->void {
           dbg("Hi, I'm A and pulled data %s\n", msg);
           c->push(msg);
         }),
-        ifCanPull<const char*>(b, [c](auto msg)->void {
+        ifCanPull(b, [c](auto msg)->void {
           dbg("Hi, I'm B and pulled data %s\n", msg);
           c->push(msg);
         }),
