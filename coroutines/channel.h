@@ -38,6 +38,13 @@ namespace Coroutines {
     }
 
   public:
+
+    ~TRawChannel() {
+      close();
+      bytes_per_elem = 0;
+      delete[] data;
+    }
+
     size_t bytesPerElem() const { return bytes_per_elem; }
     bool closed() const { return is_closed; }
     bool empty() const { return nelems_stored == 0; }

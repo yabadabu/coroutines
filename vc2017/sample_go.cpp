@@ -194,46 +194,51 @@ StrChan* fanInSelect(StrChan* a, StrChan* b) {
 }
 
 // -------------------------------------------
-template< typename T>
+template< typename T >
 struct ifCanPullDef {
-  TWatchedEvent                we;
-  TChannel<T>*                 channel;
-  T                            obj;
+  TChannel<T>*                 channel = nullptr;
+  T                            obj;                 // Temporary storage to hold the recv data
   std::function<void(T& obj)>  cb;
   ifCanPullDef(TChannel<T>* new_channel, std::function< void(T) > new_cb)
-    : we(new_channel, obj, eEventType::EVT_CHANNEL_CAN_PULL)
-    , channel(new_channel)
+    : channel(new_channel)
     , cb( new_cb )
   { }
+  void declareEvent(TWatchedEvent* we) {
+    *we = TWatchedEvent(channel, obj, eEventType::EVT_CHANNEL_CAN_PULL);
+  }
   void run() {
     channel->pull(obj);
     cb(obj);
   }
 };
 
+// Helper function to deduce the arguments in a fn, not as the ctor args
 template< typename T, typename TFn >
 ifCanPullDef<T> ifCanPull(TChannel<T>* chan, TFn new_cb) {
   return ifCanPullDef<T>(chan, new_cb);
 }
 
-
+// -------------------------------------------------------------
 struct ifTimeout {
-  TWatchedEvent                we;
+  TTimeDelta                   delta;
   std::function<void(void)>    cb;
-  ifTimeout(TTimeDelta delta)
-    : we(Time::after(delta))
+  ifTimeout(TTimeDelta new_delta) : delta( new_delta )
   { }
+  void declareEvent(TWatchedEvent* we) {
+    *we = TWatchedEvent(Time::after(delta));
+  }
   void run() {
     cb();
   }
 };
 
 // --------------------------------------------
+// Recursive event terminator
 void fillChoose(TWatchedEvent* we) { }
 
 template< typename A, typename ...Args >
 void fillChoose(TWatchedEvent* we, A& a, Args... args) {
-  *we = a.we;
+  a.declareEvent(we);
   fillChoose(we + 1, args...);
 }
 
@@ -250,18 +255,37 @@ void runOption(int idx, int the_option, A& a, Args... args) {
     runOption(idx + 1, the_option, args...);
 }
 
-template< typename A, typename ...Args >
-int choose( A& a, Args... args ) {
-  auto nwe = 1 + (int) sizeof...(args);
-  TWatchedEvent wes[1 + sizeof...(args)];
-  fillChoose(&wes[0], a, args...);
+// Templatized fn to deal with multiple args
+// This gets called with a bunch of select cases. For each one
+// we only require to have a 'declareEvent' member and the 'run' method
+// (no virtuals were fired in this experiment)
+template< typename ...Args >
+int choose( Args... args ) {
+  
+  // This will contain the number of arguments
+  auto nwe = (int) sizeof...(args);
+  
+  // We need a linear continuous array of watched events objs
+  TWatchedEvent wes[sizeof...(args)];
+  
+  // update our array. Each argument will fill one slot of the array
+  // each arg provides one we.
+  fillChoose(wes, args...);
+  
+  // Now call our std wait function which will return -1 or the index
+  // of the entry which is ready
   int n = wait(wes, nwe);
+
+  // Activate that option
   if (n >= 0 && n < nwe)
-    runOption(0, n, a, args...);
+    runOption(0, n, args...);
+  
+  // Return the index
   return n;
 }
 
-
+// --------------------------------------------------------------
+// User code
 StrChan* fanInSelect2(StrChan* a, StrChan* b) {
   StrChan* c = new StrChan;
 
@@ -286,14 +310,12 @@ StrChan* fanInSelect2(StrChan* a, StrChan* b) {
         c->close();
         break;
       }
-      
     }
+
   });
 
   return c;
 }
-
-
 
 void test_select() {
   TSimpleDemo demo("test_select");
