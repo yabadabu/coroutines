@@ -2,43 +2,40 @@
 #include <cstdio>
 #include <vector>
 #include "sample.h"
+#include "coroutines/choose.h"
 
 using namespace Coroutines;
 
-namespace Coroutines {
-
-  namespace Time {
-
-    void sleep(TTimeDelta ms_to_sleep) {
-      wait(nullptr, 0, ms_to_sleep);
-    }
-
-    TTimeDelta milliseconds(int num_ms) {
-      return TTimeDelta(num_ms);
-    }
-
-    TWatchedEvent after(TTimeDelta ms_to_sleep) {
-      TWatchedEvent we( ms_to_sleep );
-      return we;
-    }
-
-  }
-
-}
-
 typedef TChannel<const char*> StrChan;
 
+// -----------------------------------------------------------
+// Dangerous hack to write something similar to go
+// TObj obj;
+// while( channel >> obj ) {
+//   obj >> out_channel;
+// }
+
 template< typename T >
-bool operator<=(T &p, TChannel<T>& c) {
+bool operator<<(T& p, TChannel<T>& c) {
   return c.pull(p);
 }
 
 template< typename T >
-bool operator<=(TChannel<T>& c, T &p) {
+bool operator<<(TChannel<T>& c, T& p) {
   return c.push(p);
 }
 
+template< typename T >
+bool operator>>(T& p, TChannel<T>& c) {
+  return c.push(p);
+}
 
+template< typename T >
+bool operator>>(TChannel<T>& c, T& p) {
+  return c.pull(p);
+}
+
+// -----------------------------------------------------------
 void test_concurrency() {
 
   auto sc = new StrChan();
@@ -46,7 +43,7 @@ void test_concurrency() {
   auto co1 = start(std::bind([sc]( const char* label ){
     while (true) {
       sc->push(label);
-      //*sc <= label;
+      //*sc << label;
       Time::sleep(Time::milliseconds(1000));
     }
   }, "john"));
@@ -54,7 +51,7 @@ void test_concurrency() {
   auto co2 = start([sc]() {
     for (int i = 0; i < 5; ++i) {
       const char* msg;
-      if( msg <= *sc )
+      if( msg << *sc )
         dbg("You are %s\n", msg);
     }
     dbg("Bye\n");
@@ -123,12 +120,9 @@ StrChan* fanIn(StrChan* a, StrChan* b) {
   StrChan* c = new StrChan;
 
   start([c, a]() {
-    while (true) {
-      const char* msg;
-      if (!a->pull(msg))
-        break;
-      c->push(msg);
-    }
+    const char* msg;
+    while ((*a) >> msg)
+      msg >> (*c);
   });
 
   start([c, b]() {
@@ -192,98 +186,6 @@ StrChan* fanInSelect(StrChan* a, StrChan* b) {
 
   return c;
 }
-
-// -------------------------------------------
-template< typename T >
-struct ifCanPullDef {
-  TChannel<T>*                 channel = nullptr;
-  T                            obj;                 // Temporary storage to hold the recv data
-  std::function<void(T& obj)>  cb;
-  ifCanPullDef(TChannel<T>* new_channel, std::function< void(T) > new_cb)
-    : channel(new_channel)
-    , cb( new_cb )
-  { }
-  void declareEvent(TWatchedEvent* we) {
-    *we = TWatchedEvent(channel, obj, eEventType::EVT_CHANNEL_CAN_PULL);
-  }
-  void run() {
-    channel->pull(obj);
-    cb(obj);
-  }
-};
-
-// Helper function to deduce the arguments in a fn, not as the ctor args
-template< typename T, typename TFn >
-ifCanPullDef<T> ifCanPull(TChannel<T>* chan, TFn new_cb) {
-  return ifCanPullDef<T>(chan, new_cb);
-}
-
-// -------------------------------------------------------------
-struct ifTimeout {
-  TTimeDelta                   delta;
-  std::function<void(void)>    cb;
-  ifTimeout(TTimeDelta new_delta) : delta( new_delta )
-  { }
-  void declareEvent(TWatchedEvent* we) {
-    *we = TWatchedEvent(Time::after(delta));
-  }
-  void run() {
-    cb();
-  }
-};
-
-// --------------------------------------------
-// Recursive event terminator
-void fillChoose(TWatchedEvent* we) { }
-
-template< typename A, typename ...Args >
-void fillChoose(TWatchedEvent* we, A& a, Args... args) {
-  a.declareEvent(we);
-  fillChoose(we + 1, args...);
-}
-
-// --------------------------------------------
-void runOption(int idx, int the_option) {
-  assert("Something weird is going on...\n");
-}
-
-template< typename A, typename ...Args >
-void runOption(int idx, int the_option, A& a, Args... args) {
-  if (idx == the_option)
-    a.run();
-  else
-    runOption(idx + 1, the_option, args...);
-}
-
-// Templatized fn to deal with multiple args
-// This gets called with a bunch of select cases. For each one
-// we only require to have a 'declareEvent' member and the 'run' method
-// (no virtuals were fired in this experiment)
-template< typename ...Args >
-int choose( Args... args ) {
-  
-  // This will contain the number of arguments
-  auto nwe = (int) sizeof...(args);
-  
-  // We need a linear continuous array of watched events objs
-  TWatchedEvent wes[sizeof...(args)];
-  
-  // update our array. Each argument will fill one slot of the array
-  // each arg provides one we.
-  fillChoose(wes, args...);
-  
-  // Now call our std wait function which will return -1 or the index
-  // of the entry which is ready
-  int n = wait(wes, nwe);
-
-  // Activate that option
-  if (n >= 0 && n < nwe)
-    runOption(0, n, args...);
-  
-  // Return the index
-  return n;
-}
-
 // --------------------------------------------------------------
 // User code
 StrChan* fanInSelect2(StrChan* a, StrChan* b) {
@@ -294,15 +196,17 @@ StrChan* fanInSelect2(StrChan* a, StrChan* b) {
       
       // Wait until we can 'read' from any of those channels
       int n = choose(
-        ifCanPull(a, [c](auto msg)->void {
+        ifCanPull(a, [c](const char* msg) {
           dbg("Hi, I'm A and pulled data %s\n", msg);
           c->push(msg);
         }),
-        ifCanPull(b, [c](auto msg)->void {
+        ifCanPull(b, [c](auto msg) {
           dbg("Hi, I'm B and pulled data %s\n", msg);
           c->push(msg);
         }),
-        ifTimeout( 400 )
+        ifTimeout(400, []() {
+          dbg("Timeout waiting for a or b\n");
+        })
       );
 
       if (n == 2 || n == -1) {
@@ -340,3 +244,32 @@ void sample_go() {
 //  test_fanIn();
   test_select();
 }
+
+
+/*
+
+int ch = newChannel<int>();
+int ch = newChannel<int>(10);
+push( ch, 2 );
+push<float>( ch, 2.f );
+int id;
+pull( ch, id );
+pull( ch, &id, sizeof(int));
+pull<float>( ch, fdata );
+closeChannel(ch);
+deleteChannel( ch );
+
+int ch = newTcpConnection(ip_addr)
+push( ch, 2 );
+pull( ch, id );
+int nbytes = pullUpTo( ch, addr, max_bytes_to_pull );
+deleteChannel( ch );
+
+int ch_s = newTcpServer(ip_addr);
+int ch_c = newTcpAccept( ch_s );
+...
+deleteChannel( ch_s );
+
+// Time functions
+
+*/

@@ -64,5 +64,8 @@
     <ClInclude Include="..\coroutines\events.h">
       <Filter>coroutines</Filter>
     </ClInclude>
+    <ClInclude Include="..\coroutines\choose.h">
+      <Filter>coroutines</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

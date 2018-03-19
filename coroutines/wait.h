@@ -55,7 +55,7 @@ namespace Coroutines {
     TWatchedEvent(TRawChannel* new_channel, const TObj &obj, eEventType evt)
     {
       channel.channel = new_channel;
-      channel.data_addr = (TObj*)&obj;
+      channel.data_addr = (void*) &obj;
       channel.data_size = sizeof(TObj);
       event_type = evt;
       owner = current();
