@@ -159,8 +159,10 @@ public:
 
     TWatchedEvent wes[2];
     wes[0] = TWatchedEvent(time_for_event);
+    
     // We can also exit from the wait IF this channel 
-    // becomes 'closed'
+    // becomes 'closed' while we are waiting.
+    // The 'close' will trigger this event
     wes[1] = TWatchedEvent(handle.asU32(), eEventType::EVT_NEW_CHANNEL_CAN_PULL);
     int idx = wait(wes, 2);
     if (idx == -1)
@@ -172,7 +174,9 @@ public:
     }
 
     prepareNext();
-    return true;
+
+    // Return true only if the timer was really triggered
+    return ( idx == 0 );
   }
 };
 
