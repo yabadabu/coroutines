@@ -251,10 +251,10 @@ void test_download_in_parallel() {
     dbg("Total Required time: %ld:%ld\n", secs, msecs);
 
     // Closing the channel will trigger the end of the coroutines waiting for more data
-    closeChan( ch_requests );
+    close( ch_requests );
 
     // This is for cleanup
-    closeChan(ch_acc);
+    close(ch_acc);
   });
 
 }

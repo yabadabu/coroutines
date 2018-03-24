@@ -45,7 +45,7 @@ void test_channels() {
     }
 
     // If I close, pulling from ch1 will return false once all elems have been pulled
-    closeChan(ch1);
+    close(ch1);
 
     dbg("co2 ends\n");
   });
@@ -81,7 +81,7 @@ void test_channels_send_from_main() {
   dbg("Main pushes 100 twice and then closes\n");
   push(ch1, v);
   push(ch1, v);
-  closeChan(ch1);
+  close(ch1);
 }
 
 

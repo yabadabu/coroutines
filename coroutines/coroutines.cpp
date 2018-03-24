@@ -444,13 +444,13 @@ namespace Coroutines {
         break; }
 
       case EVT_CHANNEL_CAN_PULL: {
-        auto c = TBaseChan::findChannelByHandle(TChanHandle( we->nchannel.channel ));
+        auto c = internal::TBaseChan::findChannelByHandle(TChanHandle( we->nchannel.channel ));
         if (c && (!c->empty() || c->closed()))
           return idx;
         break; }
 
       case EVT_CHANNEL_CAN_PUSH: {
-        auto c = TBaseChan::findChannelByHandle(TChanHandle(we->nchannel.channel));
+        auto c = internal::TBaseChan::findChannelByHandle(TChanHandle(we->nchannel.channel));
         if (c && (!c->full() && !c->closed()))
           return idx;
         break; }
