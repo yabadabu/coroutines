@@ -46,11 +46,11 @@ namespace Coroutines {
       } io;
 
       struct {
-        TEventID    event_id;
+        TEventID   event_id;
       } user_event;
 
       struct {
-        uint32_t      channel;
+        uint32_t   channel;
       } nchannel;
 
     };

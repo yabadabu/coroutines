@@ -157,10 +157,20 @@ public:
       return true;
     }
 
-    TWatchedEvent we(time_for_event);
-    int idx = wait(&we, 1);
+    TWatchedEvent wes[2];
+    wes[0] = TWatchedEvent(time_for_event);
+    // We can also exit from the wait IF this channel 
+    // becomes 'closed'
+    wes[1] = TWatchedEvent(handle.asU32(), eEventType::EVT_NEW_CHANNEL_CAN_PULL);
+    int idx = wait(wes, 2);
     if (idx == -1)
       return false;
+    
+    if (obj) {
+      assert(nbytes == sizeof(TTimeStamp));
+      *(TTimeStamp*)obj = now();
+    }
+
     prepareNext();
     return true;
   }
@@ -207,11 +217,11 @@ TChanHandle after(TTimeDelta interval_time) {
   return registerChannel(c, eChannelType::CT_TIMER);
 }
 
-
+// -------------------------------------------------------------
+// Create a new 'typed' handle to channel
 template< typename T >
 struct TTypedChannel : public TChanHandle {
   TTypedChannel<T>(TChanHandle h) : TChanHandle(h) {};
-//  typedef typename T T;
 };
 
 template< typename T >
@@ -315,8 +325,8 @@ THandle new_readChannel(TTypedChannel<const char*> c, int max_reads) {
 void test_every_and_after() {
   TSimpleDemo demo("test_every_and_after");
 
-  auto t1 = every(Time::seconds(10));
-  auto t2 = after(Time::seconds(3));
+  auto t1 = every(Time::seconds(3));
+  auto t2 = after(Time::seconds(4));
 
   auto coT2 = start([t1, t2]() {
     pull(t2);
