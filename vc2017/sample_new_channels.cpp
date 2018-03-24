@@ -45,11 +45,9 @@ public:
   bool pull(void* addr, size_t nbytes) override {
 
     assert(this);
-    assert(addr);
-    assert(nbytes > 0);
-    assert(nbytes == bytes_per_elem);
+
     while (empty() && !closed()) {
-      TWatchedEvent evt(handle.asU32(), addr, nbytes, EVT_NEW_CHANNEL_CAN_PULL);
+      TWatchedEvent evt(handle.asU32(), EVT_NEW_CHANNEL_CAN_PULL);
       wait(&evt, 1);
     }
 
@@ -67,7 +65,7 @@ public:
     assert(nbytes == bytes_per_elem);
 
     while (full() && !closed()) {
-      TWatchedEvent evt(handle.asU32(), addr, nbytes, EVT_NEW_CHANNEL_CAN_PUSH);
+      TWatchedEvent evt(handle.asU32(), EVT_NEW_CHANNEL_CAN_PUSH);
       wait(&evt, 1);
     }
     
@@ -102,11 +100,11 @@ void TMemChan::pushBytes(const void* user_data, size_t user_data_size) {
 
 void TMemChan::pullBytes(void* user_data, size_t user_data_size) {
   assert(data.data());
-  assert(user_data);
   assert(nelems_stored > 0);
-  assert(user_data_size == bytes_per_elem);
-  if (bytes_per_elem)
+  if (user_data) {
+    assert(user_data_size == bytes_per_elem);
     memcpy(user_data, addrOfItem(first_idx), bytes_per_elem);
+  }
   --nelems_stored;
   first_idx = (first_idx + 1) % max_elems;
 
@@ -364,7 +362,7 @@ struct ifNewCanPullDef {
     , cb(new_cb)
   { }
   void declareEvent(TWatchedEvent* we) {
-    *we = TWatchedEvent(channel.asU32(), &obj, sizeof( T ), eEventType::EVT_NEW_CHANNEL_CAN_PULL);
+    *we = TWatchedEvent(channel.asU32(), eEventType::EVT_NEW_CHANNEL_CAN_PULL);
   }
   void run() {
     dbg("choose.can pull fired from channel c:%08x\n", channel);
@@ -445,8 +443,7 @@ void test_go_closing_channels() {
     closeChan(jobs);
     dbg("sent all jobs, channel is now closed\n");
 
-    bool b;
-    b << done;
+    pull(done);
     dbg("Jobs work finished\n");
   });
 

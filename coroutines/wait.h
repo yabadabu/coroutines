@@ -51,8 +51,6 @@ namespace Coroutines {
 
       struct {
         uint32_t      channel;
-        void*         data_addr;
-        size_t        data_size;
       } nchannel;
 
     };
@@ -71,12 +69,10 @@ namespace Coroutines {
       owner = current();
     }
 
-    // Wait until the we can push/pull an item into/from that channel
-    TWatchedEvent(uint32_t new_channel, const void* obj, size_t obj_size, eEventType evt)
+    // Wait until the we can push/pull an item into/from that new_channel
+    TWatchedEvent(uint32_t new_channel, eEventType evt)
     {
       nchannel.channel = new_channel;
-      nchannel.data_addr = (void*) obj;
-      nchannel.data_size = obj_size;
       event_type = evt;
       owner = current();
     }
