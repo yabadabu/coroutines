@@ -6,118 +6,48 @@
 
 using namespace Coroutines;
 
-// -------------------------------------------------------
-class TMemChan : public TBaseChan {
-  
-  typedef uint8_t u8;
+namespace Coroutines {
 
-  size_t            bytes_per_elem = 0;
-  size_t            max_elems = 0;
-  size_t            nelems_stored = 0;
-  size_t            first_idx = 0;
-  std::vector< u8 > data;
-
-  u8* addrOfItem(size_t idx) {
-    assert(!data.empty());
+  void TMemChan::pushBytes(const void* user_data, size_t user_data_size) {
+    assert(user_data);
     assert(data.data());
-    assert(idx < max_elems);
-    return data.data() + idx * bytes_per_elem;
-  }
-
-  bool full() const { return nelems_stored == max_elems; }
-  bool empty() const { return nelems_stored == 0; }
-
-  void pushBytes(const void* user_data, size_t user_data_size);
-  void pullBytes(void* user_data, size_t user_data_size);
-
-public:
-  
-  TMemChan(size_t new_max_elems, size_t new_bytes_per_elem) {
-    bytes_per_elem = new_bytes_per_elem;
-    max_elems = new_max_elems;
-    data.resize(bytes_per_elem * max_elems);
-  }
-
-  ~TMemChan() {
-    close();
-  }
-
-  bool pull(void* addr, size_t nbytes) override {
-
-    assert(this);
-
-    while (empty() && !closed()) {
-      TWatchedEvent evt(handle.asU32(), EVT_NEW_CHANNEL_CAN_PULL);
-      wait(&evt, 1);
-    }
-
-    if (closed() && empty())
-      return false;
-    
-    pullBytes(addr, nbytes);
-    return true;
-  }
-
-  bool push(const void* addr, size_t nbytes) override {
-    
-    assert(addr);
-    assert(nbytes > 0);
-    assert(nbytes == bytes_per_elem);
-
-    while (full() && !closed()) {
-      TWatchedEvent evt(handle.asU32(), EVT_NEW_CHANNEL_CAN_PUSH);
-      wait(&evt, 1);
-    }
-    
-    if (closed())
-      return false;
-    
-    pushBytes(addr, nbytes);
-    return true;
-  }
-
-};
-
-
-void TMemChan::pushBytes(const void* user_data, size_t user_data_size) {
-  assert(user_data);
-  assert(data.data());
-  assert(nelems_stored < max_elems);
-  assert(user_data_size == bytes_per_elem);
-  assert(!closed());
-  if (bytes_per_elem)
-    memcpy(addrOfItem((first_idx + nelems_stored) % max_elems), user_data, bytes_per_elem);
-  ++nelems_stored;
-
-  // For each elem pushes, wakeup one waiter to pull
-  auto we = waiting_for_pull.detachFirst< TWatchedEvent >();
-  if (we) {
-    assert(we->nchannel.channel == handle.asU32());
-    assert(we->event_type == EVT_NEW_CHANNEL_CAN_PULL);
-    wakeUp(we);
-  }
-}
-
-void TMemChan::pullBytes(void* user_data, size_t user_data_size) {
-  assert(data.data());
-  assert(nelems_stored > 0);
-  if (user_data) {
+    assert(nelems_stored < max_elems);
     assert(user_data_size == bytes_per_elem);
-    memcpy(user_data, addrOfItem(first_idx), bytes_per_elem);
-  }
-  --nelems_stored;
-  first_idx = (first_idx + 1) % max_elems;
+    assert(!closed());
+    if (bytes_per_elem)
+      memcpy(addrOfItem((first_idx + nelems_stored) % max_elems), user_data, bytes_per_elem);
+    ++nelems_stored;
 
-  // For each elem pulled, wakeup one waiter to push
-  auto we = waiting_for_push.detachFirst< TWatchedEvent >();
-  if (we) {
-    assert(we->nchannel.channel == handle.asU32());
-    assert(we->event_type == EVT_NEW_CHANNEL_CAN_PUSH);
-    wakeUp(we);
+    // For each elem pushes, wakeup one waiter to pull
+    auto we = waiting_for_pull.detachFirst< TWatchedEvent >();
+    if (we) {
+      assert(we->nchannel.channel == handle.asU32());
+      assert(we->event_type == EVT_NEW_CHANNEL_CAN_PULL);
+      wakeUp(we);
+    }
+  }
+
+  void TMemChan::pullBytes(void* user_data, size_t user_data_size) {
+    assert(data.data());
+    assert(nelems_stored > 0);
+    if (user_data) {
+      assert(user_data_size == bytes_per_elem);
+      memcpy(user_data, addrOfItem(first_idx), bytes_per_elem);
+    }
+    --nelems_stored;
+    first_idx = (first_idx + 1) % max_elems;
+
+    // For each elem pulled, wakeup one waiter to push
+    auto we = waiting_for_push.detachFirst< TWatchedEvent >();
+    if (we) {
+      assert(we->nchannel.channel == handle.asU32());
+      assert(we->event_type == EVT_NEW_CHANNEL_CAN_PUSH);
+      wakeUp(we);
+    }
+
   }
 
 }
-
 
 // -------------------------------------------------------
 class TIOChan : public TBaseChan {
@@ -195,90 +125,48 @@ TBaseChan* TBaseChan::findChannelByHandle(TChanHandle h) {
 }
 
 // -------------------------------------------------------------
-bool closeChan(TChanHandle cid) {
-  TBaseChan* c = TBaseChan::findChannelByHandle(cid);
-  if (!c || c->closed())
-    return false;
-  c->close();
-  return true;
-}
+namespace Coroutines {
 
-TChanHandle registerChannel(TBaseChan* c, eChannelType channel_type) {
-  all_channels.push_back(c);
-  c->handle = TChanHandle(channel_type, (int32_t)all_channels.size() - 1);
-  return c->handle;
-}
+  bool closeChan(TChanHandle cid) {
+    TBaseChan* c = TBaseChan::findChannelByHandle(cid);
+    if (!c || c->closed())
+      return false;
+    c->close();
+    return true;
+  }
 
-TChanHandle every(TTimeDelta interval_time) {
-  TTimeChan* c = new TTimeChan(interval_time, true);
-  all_channels.push_back(c);
-  return registerChannel(c, eChannelType::CT_TIMER);
-}
+  TChanHandle registerChannel(TBaseChan* c, eChannelType channel_type) {
+    all_channels.push_back(c);
+    c->handle = TChanHandle(channel_type, (int32_t)all_channels.size() - 1);
+    return c->handle;
+  }
 
-TChanHandle after(TTimeDelta interval_time) {
-  TTimeChan* c = new TTimeChan(interval_time, false);
-  all_channels.push_back(c);
-  return registerChannel(c, eChannelType::CT_TIMER);
-}
+  TChanHandle every(TTimeDelta interval_time) {
+    TTimeChan* c = new TTimeChan(interval_time, true);
+    all_channels.push_back(c);
+    return registerChannel(c, eChannelType::CT_TIMER);
+  }
 
-// -------------------------------------------------------------
-// Create a new 'typed' handle to channel
-template< typename T >
-struct TTypedChannel : public TChanHandle {
-  TTypedChannel<T>(TChanHandle h) : TChanHandle(h) {};
-};
+  TChanHandle after(TTimeDelta interval_time) {
+    TTimeChan* c = new TTimeChan(interval_time, false);
+    all_channels.push_back(c);
+    return registerChannel(c, eChannelType::CT_TIMER);
+  }
 
-template< typename T >
-TTypedChannel<T> newChanMem(int max_capacity = 1) {
-  size_t bytes_per_elem = sizeof(T);
-  TMemChan* c = new TMemChan(max_capacity, bytes_per_elem);
-  return registerChannel(c, eChannelType::CT_MEMORY);
-}
+  // -------------------------------------------------------------
+  // For the time channels
+  bool pull(TChanHandle cid) {
+    TBaseChan* c = TBaseChan::findChannelByHandle(cid);
+    if (!c || c->closed())
+      return false;
+    return c->pull(nullptr, 0);
+  }
 
-
-// -------------------------------------------------------------
-template< typename T>
-bool push(TTypedChannel<T> cid, const T& obj) {
-  
-  TBaseChan* c = TBaseChan::findChannelByHandle(cid);
-  if (!c || c->closed())
-    return false;
-
-  return c->push(&obj, sizeof(T));
-}
-
-// -------------------------------------------------------------
-template< typename T>
-bool pull(TTypedChannel<T> cid, T& obj) {
-
-  TBaseChan* c = TBaseChan::findChannelByHandle(cid);
-  if (!c || ( c->closed() && c->empty() ))
-    return false;
-
-  return c->pull(&obj, sizeof(T));
-}
-
-// -------------------------------------------------------------
-// For the time channels
-bool pull(TChanHandle cid) {
-  TBaseChan* c = TBaseChan::findChannelByHandle(cid);
-  if (!c || c->closed())
-    return false;
-  return c->pull(nullptr, 0);
 }
 
 // -------------------------------------------------------------
 // -------------------------------------------------------------
 // -------------------------------------------------------------
-template< typename T >
-bool operator<<(T& p, TTypedChannel<T> c) {
-  return pull(c, p);
-}
-
-template< typename T >
-bool operator<<(TTypedChannel<T> c, T p) {
-  return push(c, p);
-}
 
 bool operator<<(TTimeStamp& value, TChanHandle cid) {
   TBaseChan* c = TBaseChan::findChannelByHandle(cid);
@@ -353,32 +241,6 @@ void test_every_and_after() {
 
 }
 
-// -------------------------------------------
-template< typename T >
-struct ifNewCanPullDef {
-  TTypedChannel<T>             channel = 0;
-  T                            obj;                 // Temporary storage to hold the recv data
-  std::function<void(T& obj)>  cb;
-  ifNewCanPullDef(TTypedChannel<T> new_channel, std::function< void(T) >&& new_cb)
-    : channel(new_channel)
-    , cb(new_cb)
-  { }
-  void declareEvent(TWatchedEvent* we) {
-    *we = TWatchedEvent(channel.asU32(), eEventType::EVT_NEW_CHANNEL_CAN_PULL);
-  }
-  void run() {
-    dbg("choose.can pull fired from channel c:%08x\n", channel);
-    if (pull(channel, obj))
-      cb(obj);
-  }
-};
-
-
-// Helper function to deduce the arguments in a fn, not as the ctor args
-template< typename T, typename TFn >
-ifNewCanPullDef<T> ifNewCanPull(TTypedChannel<T> chan, TFn&& new_cb) {
-  return ifNewCanPullDef<T>(chan, new_cb);
-}
 
 void test_new_choose() {
   TSimpleDemo demo("test_new_choose");

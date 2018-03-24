@@ -211,14 +211,6 @@ namespace Coroutines {
       while (n--) {
         switch (we->event_type) {
 
-        case EVT_CHANNEL_CAN_PULL:
-          we->channel.channel->waiting_for_pull.append(we);
-          break;
-
-        case EVT_CHANNEL_CAN_PUSH:
-          we->channel.channel->waiting_for_push.append(we);
-          break;
-
         case EVT_COROUTINE_ENDS: {
           // Check if the handle that we want to wait, still exists
           auto co_to_wait = internal::byHandle(we->coroutine.handle);
@@ -295,14 +287,6 @@ namespace Coroutines {
       int n = 0;
       while (n <  nwatched_events) {
         switch (we->event_type) {
-
-        case EVT_CHANNEL_CAN_PULL:
-          we->channel.channel->waiting_for_pull.detach(we);
-          break;
-
-        case EVT_CHANNEL_CAN_PUSH:
-          we->channel.channel->waiting_for_push.detach(we);
-          break;
 
         case EVT_COROUTINE_ENDS: {
           // The coroutine we were waiting for is already gone, but
@@ -447,16 +431,6 @@ namespace Coroutines {
       auto we = watched_events + idx;
 
       switch (we->event_type) {
-
-      case EVT_CHANNEL_CAN_PULL:
-        if (!we->channel.channel->empty() || we->channel.channel->closed())
-          return idx;
-        break;
-
-      case EVT_CHANNEL_CAN_PUSH:
-        if (!we->channel.channel->full() && !we->channel.channel->closed())
-          return idx;
-        break;
 
       case EVT_COROUTINE_ENDS: {
         if (!isHandle(we->coroutine.handle))

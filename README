@@ -2,6 +2,9 @@ This is a C++ wrapper to run coroutines using fcontext as a switching platform.
 
 ** TODO
 
+- Remove old channels
+- Add io channels as regular channels
+- Close channel to ChanHandle
 - Add more examples
 - Remove old entries from 'VDescriptors' at internal::TIOEvents once done
 - Move TChannel/CIOHandle to handle-based resource or simple identifiers

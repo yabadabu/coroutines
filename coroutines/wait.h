@@ -7,8 +7,6 @@ namespace Coroutines {
     EVT_USER_EVENT = 0
   , EVT_COROUTINE_ENDS
   , EVT_TIMEOUT
-  , EVT_CHANNEL_CAN_PUSH
-  , EVT_CHANNEL_CAN_PULL
   , EVT_SOCKET_IO_CAN_READ
   , EVT_SOCKET_IO_CAN_WRITE
 
@@ -25,12 +23,6 @@ namespace Coroutines {
     eEventType     event_type;    // Set by the ctor
 
     union {
-
-      struct {
-        TRawChannel*  channel;
-        void*         data_addr;
-        size_t        data_size;
-      } channel;
 
       struct {
         TTimeStamp time_programmed;    // Timestamp when it was programmed
@@ -57,17 +49,6 @@ namespace Coroutines {
 
     // Specialized ctors
     TWatchedEvent() : event_type(EVT_INVALID) { }
-
-    // Wait until the we can push/pull an item into/from that channel
-    template< class TObj >
-    TWatchedEvent(TRawChannel* new_channel, const TObj &obj, eEventType evt)
-    {
-      channel.channel = new_channel;
-      channel.data_addr = (void*)&obj;
-      channel.data_size = sizeof(TObj);
-      event_type = evt;
-      owner = current();
-    }
 
     // Wait until the we can push/pull an item into/from that new_channel
     TWatchedEvent(uint32_t new_channel, eEventType evt)

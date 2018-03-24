@@ -189,19 +189,19 @@ bool download(TDownloadTask* dt) {
 void test_download_in_parallel() {
   TSimpleDemo demo("test_download_in_parallel");
 
-  auto ch_requests = new TChannel<TDownloadTask*>(10);
-  auto ch_acc = new TChannel<TDownloadTask*>(10);
+  auto ch_requests = newChanMem<TDownloadTask*>(10);
+  auto ch_acc = newChanMem<TDownloadTask*>(10);
   bool      all_queued = false;
   int       ndownloads = 0;
 
   // Generate the requests from another co with some in the middle waits
   auto co_producer = start([ch_requests, &all_queued, &ndownloads]() {
-    ch_requests->push(new TDownloadTask("www.lavanguardia.com")); ++ndownloads;
+    push(ch_requests, new TDownloadTask("www.lavanguardia.com")); ++ndownloads;
     wait(nullptr, 0, 100);
-    ch_requests->push(new TDownloadTask("blog.selfshadow.com")); ++ndownloads;
-    ch_requests->push(new TDownloadTask("www.humus.name/index.php?page=News")); ++ndownloads;
+    push(ch_requests, new TDownloadTask("blog.selfshadow.com")); ++ndownloads;
+    push(ch_requests, new TDownloadTask("www.humus.name/index.php?page=News")); ++ndownloads;
     wait(nullptr, 0, 100);
-    ch_requests->push(new TDownloadTask("www.humus.name/index.php?page=3D")); ++ndownloads;
+    push(ch_requests, new TDownloadTask("www.humus.name/index.php?page=3D")); ++ndownloads;
     all_queued = true;
   });
 
@@ -211,11 +211,11 @@ void test_download_in_parallel() {
     auto h = start([ch_requests, ch_acc]() {
       // Take a download task from the channel while the channel is alive
       TDownloadTask* dt = nullptr;
-      while (ch_requests->pull(dt)) {
+      while (dt << ch_requests) {
         // Download it and..
         download(dt);
         // Queue to the next stage
-        ch_acc->push(dt);
+        ch_acc << dt;
       }
     });
   }
@@ -228,7 +228,7 @@ void test_download_in_parallel() {
     size_t ntasks = 0;
     size_t total_bytes = 0;
     TDownloadTask* dt = nullptr;
-    while ((ntasks < ndownloads || !all_queued ) && ch_acc->pull(dt)) {
+    while ((ntasks < ndownloads || !all_queued ) && pull(ch_acc, dt)) {
       assert(dt);
 
       // Accumulate some total bytes and max time
@@ -251,10 +251,10 @@ void test_download_in_parallel() {
     dbg("Total Required time: %ld:%ld\n", secs, msecs);
 
     // Closing the channel will trigger the end of the coroutines waiting for more data
-    ch_requests->close();
+    closeChan( ch_requests );
 
     // This is for cleanup
-    ch_acc->close();
+    closeChan(ch_acc);
   });
 
 }

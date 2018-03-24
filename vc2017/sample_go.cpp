@@ -6,44 +6,16 @@
 
 using namespace Coroutines;
 
-typedef TChannel<const char*> StrChan;
-
-// -----------------------------------------------------------
-// Dangerous hack to write something similar to go
-// TObj obj;
-// while( channel >> obj ) {
-//   obj >> out_channel;
-// }
-
-template< typename T >
-bool operator<<(T& p, TChannel<T>& c) {
-  return c.pull(p);
-}
-
-template< typename T >
-bool operator<<(TChannel<T>& c, T& p) {
-  return c.push(p);
-}
-
-template< typename T >
-bool operator>>(T& p, TChannel<T>& c) {
-  return c.push(p);
-}
-
-template< typename T >
-bool operator>>(TChannel<T>& c, T& p) {
-  return c.pull(p);
-}
+typedef TTypedChannel<const char*> StrChan;
 
 // -----------------------------------------------------------
 void test_concurrency() {
 
-  auto sc = new StrChan();
+  auto sc = newChanMem<const char*>();
 
   auto co1 = start(std::bind([sc]( const char* label ){
     while (true) {
-      sc->push(label);
-      //*sc << label;
+      sc << label;
       Time::sleep(Time::milliseconds(1000));
     }
   }, "john"));
@@ -51,7 +23,7 @@ void test_concurrency() {
   auto co2 = start([sc]() {
     for (int i = 0; i < 5; ++i) {
       const char* msg;
-      if( msg << *sc )
+      if( msg << sc )
         dbg("You are %s\n", msg);
     }
     dbg("Bye\n");
@@ -65,11 +37,11 @@ void test_concurrency() {
 }
 
 // ---------------------------------------------------------
-StrChan* boring(const char* label, int min_time = 0) {
-  auto sc = new StrChan();
+StrChan boring(const char* label, int min_time = 0) {
+  auto sc = newChanMem<const char*>();
   start([sc, label, min_time]() {
     while (true) {
-      if (!sc->push(label))
+      if (!(sc << label))
         break;
       Time::sleep(Time::milliseconds(min_time + (rand() % 1000)));
     }
@@ -86,9 +58,9 @@ void test_borings() {
   auto co2 = start([b1, b2]() {
     for (int i = 0; i < 5; ++i) {
       const char* msg;
-      b1->pull(msg);
+      msg << b1;
       dbg("%s\n", msg);
-      b2->pull(msg);
+      msg << b2;
       dbg("%s\n", msg);
     }
     dbg("Bye\n");
@@ -97,17 +69,17 @@ void test_borings() {
   // Only wait for co2
   while (isHandle(co2))
     executeActives();
-  b1->close();
-  b2->close();
+  closeChan(b1);
+  closeChan(b2);
   dbg("Done\n");
 }
 
 // -------------------------------------------------
-THandle readChannel(StrChan* c, int n) {
+THandle readChannel(StrChan c, int n) {
   return start([c, n]() {
     for (int i = 0; i < n; ++i) {
       const char* msg = nullptr;
-      if (!c->pull(msg))
+      if (!pull(c, msg))
         break;
       dbg("%s\n", msg);
     }
@@ -116,21 +88,21 @@ THandle readChannel(StrChan* c, int n) {
 }
 
 
-StrChan* fanIn(StrChan* a, StrChan* b) {
-  StrChan* c = new StrChan;
+StrChan fanIn(StrChan a, StrChan b) {
+  StrChan c = newChanMem<const char*>();
 
   start([c, a]() {
     const char* msg;
-    while ((*a) >> msg)
-      msg >> (*c);
+    while (msg << a)
+      c << msg;
   });
 
   start([c, b]() {
     while (true) {
       const char* msg;
-      if (!b->pull(msg))
+      if (!pull(b, msg))
         break;
-      c->push(msg);
+      push(c, msg);
     }
   });
   return c;
@@ -148,16 +120,16 @@ void test_fanIn() {
   while (isHandle(co2))
     executeActives();
 
-  b->close();
-  b1->close();
-  b2->close();
+  closeChan(b);
+  closeChan(b1);
+  closeChan(b2);
 
   dbg("Done\n");
 }
 
 // -------------------------------------------
-StrChan* fanInSelect(StrChan* a, StrChan* b) {
-  StrChan* c = new StrChan;
+StrChan fanInSelect(StrChan a, StrChan b) {
+  auto c = newChanMem<const char*>();
 
   start([c, a, b]() {
     while (true) {
@@ -165,22 +137,22 @@ StrChan* fanInSelect(StrChan* a, StrChan* b) {
       // Wait until we can 'read' from any of those channels
       const char* msg;
       TWatchedEvent we[3] = { 
-        TWatchedEvent(a, msg, eEventType::EVT_CHANNEL_CAN_PULL ), 
-        TWatchedEvent(b, msg, eEventType::EVT_CHANNEL_CAN_PULL ), 
+        TWatchedEvent(a.asU32(), eEventType::EVT_NEW_CHANNEL_CAN_PULL ), 
+        TWatchedEvent(b.asU32(), eEventType::EVT_NEW_CHANNEL_CAN_PULL ),
         Time::after( 400 )
       };
       int n = wait(we, 3);
       if (n == 2 || n == -1) {
         dbg("Too slows..\n");
-        c->close();
+        closeChan(c);
         break;
       }
-      StrChan* ic = (n == 0) ? a : b;
+      StrChan ic = (n == 0) ? a : b;
 
-      if (!ic->pull(msg))
+      if (!( msg << ic))
         break;
 
-      c->push(msg);
+      c << msg;
     }
   });
 
@@ -189,21 +161,21 @@ StrChan* fanInSelect(StrChan* a, StrChan* b) {
 
 // --------------------------------------------------------------
 // User code
-StrChan* fanInSelect2(StrChan* a, StrChan* b) {
-  StrChan* c = new StrChan;
+StrChan fanInSelect2(StrChan a, StrChan b) {
+  StrChan c = newChanMem<const char*>();
 
   start([c, a, b]() {
     while (true) {
       
       // Wait until we can 'read' from any of those channels
       int n = choose(
-        ifCanPull(a, [c](const char* msg) {
+        ifNewCanPull(a, [c](const char* msg) {
           dbg("Hi, I'm A and pulled data %s\n", msg);
-          c->push(msg);
+          c << msg;
         }),
-        ifCanPull(b, [c](auto msg) {
+        ifNewCanPull(b, [c](auto msg) {
           dbg("Hi, I'm B and pulled data %s\n", msg);
-          c->push(msg);
+          c << msg;
         }),
         ifTimeout(400, []() {
           dbg("Timeout waiting for a or b\n");
@@ -212,7 +184,7 @@ StrChan* fanInSelect2(StrChan* a, StrChan* b) {
 
       if (n == 2 || n == -1) {
         dbg("Too slows..\n");
-        c->close();
+        closeChan(c);
         break;
       }
     }
@@ -233,9 +205,9 @@ void test_select() {
   while (isHandle(co2))
     executeActives();
 
-  b->close();
-  b1->close();
-  b2->close();
+  closeChan(b);
+  closeChan(b1);
+  closeChan(b2);
 }
 
 // ----------------------------------------------------------

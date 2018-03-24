@@ -4,52 +4,28 @@ namespace Coroutines {
 
   // -------------------------------------------
   template< typename T >
-  struct ifCanPullDef {
-    TChannel<T>*                 channel = nullptr;
+  struct ifNewCanPullDef {
+    TTypedChannel<T>             channel = 0;
     T                            obj;                 // Temporary storage to hold the recv data
     std::function<void(T& obj)>  cb;
-    ifCanPullDef(TChannel<T>* new_channel, std::function< void(T) >&& new_cb)
+    ifNewCanPullDef(TTypedChannel<T> new_channel, std::function< void(T) >&& new_cb)
       : channel(new_channel)
       , cb(new_cb)
     { }
     void declareEvent(TWatchedEvent* we) {
-      *we = TWatchedEvent(channel, obj, eEventType::EVT_CHANNEL_CAN_PULL);
+      *we = TWatchedEvent(channel.asU32(), eEventType::EVT_NEW_CHANNEL_CAN_PULL);
     }
     void run() {
-      if (channel->pull(obj))
+      dbg("choose.can pull fired from channel c:%08x\n", channel);
+      if (pull(channel, obj))
         cb(obj);
     }
   };
 
   // Helper function to deduce the arguments in a fn, not as the ctor args
   template< typename T, typename TFn >
-  ifCanPullDef<T> ifCanPull(TChannel<T>* chan, TFn&& new_cb) {
-    return ifCanPullDef<T>(chan, new_cb);
-  }
-
-  // -------------------------------------------
-  template< typename T >
-  struct ifCanPushDef {
-    TChannel<T>*                 channel = nullptr;
-    T                            obj;                 // Temporary storage to hold the recv data
-    std::function<void(T& obj)>  cb;
-    ifCanPushDef(TChannel<T>* new_channel, std::function< void(T) >&& new_cb)
-      : channel(new_channel)
-      , cb(new_cb)
-    { }
-    void declareEvent(TWatchedEvent* we) {
-      *we = TWatchedEvent(channel, obj, eEventType::EVT_CHANNEL_CAN_PUSH);
-    }
-    void run() {
-      if (channel->push(obj))
-        cb(obj);
-    }
-  };
-
-  // Helper function to deduce the arguments in a fn, not as the ctor args
-  template< typename T, typename TFn >
-  ifCanPushDef<T> ifCanPush(TChannel<T>* chan, TFn&& new_cb) {
-    return ifCanPushDef<T>(chan, new_cb);
+  ifNewCanPullDef<T> ifNewCanPull(TTypedChannel<T> chan, TFn&& new_cb) {
+    return ifNewCanPullDef<T>(chan, new_cb);
   }
 
   // -------------------------------------------------------------

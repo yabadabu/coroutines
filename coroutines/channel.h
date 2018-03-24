@@ -8,92 +8,8 @@ namespace Coroutines {
 
   typedef uint8_t u8;
 
-  // ----------------------------------------
-  class TRawChannel {
-    size_t bytes_per_elem = 0;
-    size_t max_elems      = 0;
-    size_t nelems_stored  = 0;
-    size_t first_idx      = 0;
-    u8*    data           = nullptr;
-    bool   is_closed      = false;
-
-    u8* addrOfItem(size_t idx) {
-      assert(data);
-      assert(idx < max_elems);
-      return data + idx * bytes_per_elem;
-    }
-
-  public:
-    TList  waiting_for_push;
-    TList  waiting_for_pull;
-  
-  protected:
-    void pushBytes(const void* user_data, size_t user_data_size);
-    void pullBytes(void* user_data, size_t user_data_size);
-    TRawChannel() = default;
-    TRawChannel(size_t new_max_elems, size_t new_bytes_per_elem) {
-      bytes_per_elem = new_bytes_per_elem;
-      max_elems = new_max_elems;
-      data = new u8[bytes_per_elem * max_elems];
-    }
-
-  public:
-
-    ~TRawChannel() {
-      close();
-      bytes_per_elem = 0;
-      delete[] data;
-    }
-
-    size_t bytesPerElem() const { return bytes_per_elem; }
-    bool closed() const { return is_closed; }
-    bool empty() const { return nelems_stored == 0; }
-    bool full() const { return nelems_stored == max_elems; }
-    void close();
-    size_t size() const { return nelems_stored; }
-
-    // Without blocking
-    bool canPull() const { return !empty(); }
-    bool canPush() const { return !full(); }
-  };
-
-  // -----------------------------------------------------
-  template< typename T >
-  class TChannel : public TRawChannel {
-  public:
-    TChannel(size_t new_max_elems = 1) :
-      TRawChannel(new_max_elems, sizeof(T))
-    {}
-    // returns true if the object can be pushed
-    bool push(const T& obj) {
-      assert(this);
-      assert(&obj);
-      while (full() && !closed()) {
-        TWatchedEvent evt(this, obj, EVT_CHANNEL_CAN_PUSH);
-        wait(&evt, 1);
-      }
-      if (closed())
-        return false;
-      pushBytes(&obj, sizeof(obj));
-      return true;
-    }
-
-    // returns true if the object can be pulled
-    bool pull(T& obj) {
-      assert(this);
-      assert(&obj);
-      while (empty() && !closed()) {
-        TWatchedEvent evt(this, obj, EVT_CHANNEL_CAN_PULL);
-        wait(&evt, 1);
-      }
-
-      if (closed() && empty())
-        return false;
-      pullBytes(&obj, sizeof(T));
-      return true;
-    }
-  };
-
+  // -------------------------------------------------------
+  // -------------------------------------------------------
   // -------------------------------------------------------
   enum eChannelType { CT_INVALID = 0, CT_TIMER = 1, CT_MEMORY, CT_IO };
   struct TChanHandle {
@@ -154,7 +70,133 @@ namespace Coroutines {
   
     static TBaseChan* findChannelByHandle(TChanHandle h);
   };
+
+  // -------------------------------------------------------
+  class TMemChan : public TBaseChan {
+
+    typedef uint8_t u8;
+
+    size_t            bytes_per_elem = 0;
+    size_t            max_elems = 0;
+    size_t            nelems_stored = 0;
+    size_t            first_idx = 0;
+    std::vector< u8 > data;
+
+    u8* addrOfItem(size_t idx) {
+      assert(!data.empty());
+      assert(data.data());
+      assert(idx < max_elems);
+      return data.data() + idx * bytes_per_elem;
+    }
+
+    bool full() const { return nelems_stored == max_elems; }
+    bool empty() const { return nelems_stored == 0; }
+
+    void pushBytes(const void* user_data, size_t user_data_size);
+    void pullBytes(void* user_data, size_t user_data_size);
+
+  public:
+
+    TMemChan(size_t new_max_elems, size_t new_bytes_per_elem) {
+      bytes_per_elem = new_bytes_per_elem;
+      max_elems = new_max_elems;
+      data.resize(bytes_per_elem * max_elems);
+    }
+
+    ~TMemChan() {
+      close();
+    }
+
+    bool pull(void* addr, size_t nbytes) override {
+
+      assert(this);
+
+      while (empty() && !closed()) {
+        TWatchedEvent evt(handle.asU32(), EVT_NEW_CHANNEL_CAN_PULL);
+        wait(&evt, 1);
+      }
+
+      if (closed() && empty())
+        return false;
+
+      pullBytes(addr, nbytes);
+      return true;
+    }
+
+    bool push(const void* addr, size_t nbytes) override {
+
+      assert(addr);
+      assert(nbytes > 0);
+      assert(nbytes == bytes_per_elem);
+
+      while (full() && !closed()) {
+        TWatchedEvent evt(handle.asU32(), EVT_NEW_CHANNEL_CAN_PUSH);
+        wait(&evt, 1);
+      }
+
+      if (closed())
+        return false;
+
+      pushBytes(addr, nbytes);
+      return true;
+    }
+
+  };
+
+
   
+  // -------------------------------------------------------------
+  // Create a new 'typed' handle to channel
+  template< typename T >
+  struct TTypedChannel : public TChanHandle {
+    TTypedChannel<T>(TChanHandle h) : TChanHandle(h) {};
+  };
+
+  template< typename T >
+  TTypedChannel<T> newChanMem(int max_capacity = 1) {
+    size_t bytes_per_elem = sizeof(T);
+    TMemChan* c = new TMemChan(max_capacity, bytes_per_elem);
+    return registerChannel(c, eChannelType::CT_MEMORY);
+  }
+
+  // -------------------------------------------------------------
+  template< typename T>
+  bool push(TTypedChannel<T> cid, const T& obj) {
+
+    TBaseChan* c = TBaseChan::findChannelByHandle(cid);
+    if (!c || c->closed())
+      return false;
+
+    return c->push(&obj, sizeof(T));
+  }
+
+  // -------------------------------------------------------------
+  template< typename T>
+  bool pull(TTypedChannel<T> cid, T& obj) {
+
+    TBaseChan* c = TBaseChan::findChannelByHandle(cid);
+    if (!c || (c->closed() && c->empty()))
+      return false;
+
+    return c->pull(&obj, sizeof(T));
+  }
+
+  // -------------------------------------------------------------
+  // Read discarting the data. 
+  bool pull(TChanHandle cid);
+  bool closeChan(TChanHandle cid);
+  TChanHandle registerChannel(TBaseChan* c, eChannelType channel_type);
+
+  // -------------------------------------------------------------
+  template< typename T >
+  bool operator<<(T& p, TTypedChannel<T> c) {
+    return pull(c, p);
+  }
+
+  template< typename T >
+  bool operator<<(TTypedChannel<T> c, T p) {
+    return push(c, p);
+  }
 
 
 }
