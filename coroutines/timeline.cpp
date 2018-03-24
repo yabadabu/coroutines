@@ -82,9 +82,6 @@ namespace Coroutines {
       return TTimeDelta(num_ms);
     }
 
-    TTimeDelta Second = TTimeDelta(1000);
-    TTimeDelta MilliSecond = TTimeDelta(1);
-
     TTimeDelta seconds(int num_secs) {
       return milliseconds(num_secs * 1000);
     }

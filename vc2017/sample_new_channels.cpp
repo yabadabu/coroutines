@@ -280,6 +280,13 @@ bool operator<<(TTypedChannel<T> c, T p) {
   return push(c, p);
 }
 
+bool operator<<(TTimeStamp& value, TChanHandle cid) {
+  TBaseChan* c = TBaseChan::findChannelByHandle(cid);
+  if (!c || c->closed())
+    return false;
+  return c->pull(&value, sizeof(value));
+}
+
 //template< typename T >
 //bool operator>>(T& p, TChannel<T>& c) {
 //  return c.push(p);
@@ -444,10 +451,85 @@ void test_go_closing_channels() {
 
 }
 
+
+// --------------------------------------------------
+void test_read_closed_channels() {
+  TSimpleDemo demo("test_read_closed_channels");
+  start([]() {
+    auto queue = newChanMem<const char*>(2);
+    queue << "one";
+    queue << "two";
+    closeChan(queue);
+    const char* msg;
+    while (msg << queue) {
+      dbg("Recv %s\n", msg);
+    }
+  });
+}
+
+// --------------------------------------------------
+void test_tickers() {
+  TSimpleDemo demo("test_tickers");
+  start([]() {
+    auto ticker = every(500 * Time::MilliSecond);
+    start([ticker]() {
+      TTimeStamp ts;
+      while (ts << ticker) {
+        long num_secs, num_millisecs;
+        getSecondsAndMilliseconds(ts, &num_secs, &num_millisecs);
+        num_secs = num_secs % 60;
+        long num_mins = num_secs / 60;
+        dbg("Tick at %ld:%ld:%03ld\n", num_mins, num_secs, num_millisecs);
+      }
+    });
+    Time::sleep(1600 * Time::MilliSecond);
+    closeChan(ticker);
+    dbg("Ticker stopped\n");
+  });
+}
+
+// --------------------------------------------------
+void go_worker(int id, TTypedChannel<int> jobs, TTypedChannel<int> results) {
+  int j;
+  while (j << jobs) {
+    dbg("Worker %d started job %d\n", id, j);
+    Time::sleep(Time::Second);
+    dbg("Worker %d finished job %d\n", id, j);
+    results << (j * 2);
+  }
+}
+
+void test_go_worker_pool() {
+  TSimpleDemo demo("test_go_worker_pool");
+  start([]() {
+    auto jobs = newChanMem<int>(100);
+    auto results = newChanMem<int>(100);
+    for (int i = 1; i <= 3; ++i) {
+      start([&,i]() {   // We need by value
+        go_worker(i, jobs, results);
+      });
+    }
+    dbg("Sending work...\n");
+    for (int i = 1; i <= 5; ++i)
+      jobs << i;
+    closeChan(jobs);
+    dbg("Receiving results...\n");
+    for (int i = 0; i < 5; ++i) {
+      int r;
+      r << results;
+      dbg("Result %d is %d\n", i, r);
+    }
+    dbg("Done\n");
+  });
+}
+
 void sample_new_channels() {
-  test_go_closing_channels();
+  //test_go_closing_channels();
+  //test_every_and_after();
+  //test_read_closed_channels();
+  //test_tickers();
+  test_go_worker_pool();
   //test_new_choose();
-  test_every_and_after();
 }
 
 
