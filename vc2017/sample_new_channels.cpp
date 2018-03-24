@@ -7,39 +7,11 @@
 using namespace Coroutines;
 
 // -------------------------------------------------------------
-// -------------------------------------------------------------
-// -------------------------------------------------------------
 typedef TTypedChannel<const char*> StrChan;
 typedef TTypedChannel<int> IntChan;
 
-// ---------------------------------------------------------
-TTypedChannel<const char*> new_boring(const char* label, TTimeDelta min_time = 0) {
-  auto sc = StrChan::create();
-  start([sc, label, min_time]() {
-    while (true) {
-      dbg("Try to push %sto c:%08x\n", label, sc);
-      if (!( sc << label))
-        break;
-      dbg("Pushed %s, no waiting a bit\n", label);
-      Time::sleep(min_time + (rand() % 1000) * Time::MilliSecond);
-    }
-  });
-  return sc;
-}
-
-// -------------------------------------------------
-THandle new_readChannel(TTypedChannel<const char*> c, int max_reads) {
-  return start([c, max_reads]() {
-    for (int i = 0; i < max_reads; ++i) {
-      const char* msg = nullptr;
-      if (!pull(c, msg))
-        break;
-      dbg("Read [%d] %s\n", i, msg);
-    }
-    dbg("Bye\n");
-  });
-}
-
+StrChan boring(const char* label, TTimeDelta min_time);
+THandle readChannel(StrChan c, int max_reads);
 
 // ---------------------------------------------------------
 void test_every_and_after() {
@@ -66,8 +38,8 @@ void test_every_and_after() {
 void test_new_choose() {
   TSimpleDemo demo("test_new_choose");
 
-  auto c1 = new_boring("John", Time::Second);
-  auto c2 = new_boring("Peter", Time::Second);
+  auto c1 = boring("John", Time::Second);
+  auto c2 = boring("Peter", Time::Second);
   auto o1 = StrChan::create();
 
   auto coA = start([c1,c2,o1]() {
@@ -90,7 +62,7 @@ void test_new_choose() {
     }
   });
 
-  auto co2 = new_readChannel(o1, 5);
+  auto co2 = readChannel(o1, 5);
   start([&]() {
     wait(co2);
     close(c1);

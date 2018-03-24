@@ -3,29 +3,33 @@
 namespace Coroutines {
 
   // -------------------------------------------
-  template< typename T >
-  struct ifCanPullDef {
-    TTypedChannel<T>             channel = 0;
-    T                            obj;                 // Temporary storage to hold the recv data
-    std::function<void(T& obj)>  cb;
-    ifCanPullDef(TTypedChannel<T> new_channel, std::function< void(T) >&& new_cb)
-      : channel(new_channel)
-      , cb(new_cb)
-    { }
-    void declareEvent(TWatchedEvent* we) {
-      *we = TWatchedEvent(channel.asU32(), eEventType::EVT_CHANNEL_CAN_PULL);
-    }
-    void run() {
-      dbg("choose.can pull fired from channel c:%08x\n", channel);
-      if (pull(channel, obj))
-        cb(obj);
-    }
-  };
+  namespace internal {
+
+    template< typename T >
+    struct ifCanPullDef {
+      TTypedChannel<T>             channel = 0;
+      T                            obj;                 // Temporary storage to hold the recv data
+      std::function<void(T& obj)>  cb;
+      ifCanPullDef(TTypedChannel<T> new_channel, std::function< void(T) >&& new_cb)
+        : channel(new_channel)
+        , cb(new_cb)
+      { }
+      void declareEvent(TWatchedEvent* we) {
+        *we = TWatchedEvent(channel.asU32(), eEventType::EVT_CHANNEL_CAN_PULL);
+      }
+      void run() {
+        dbg("choose.can pull fired from channel c:%08x\n", channel);
+        if (pull(channel, obj))
+          cb(obj);
+      }
+    };
+
+  }
 
   // Helper function to deduce the arguments in a fn, not as the ctor args
   template< typename T, typename TFn >
-  ifCanPullDef<T> ifCanPull(TTypedChannel<T> chan, TFn&& new_cb) {
-    return ifCanPullDef<T>(chan, new_cb);
+  internal::ifCanPullDef<T> ifCanPull(TTypedChannel<T> chan, TFn&& new_cb) {
+    return internal::ifCanPullDef<T>(chan, new_cb);
   }
 
   // -------------------------------------------------------------
@@ -44,8 +48,8 @@ namespace Coroutines {
     }
   };
 
-  // Hide these templates from the user inside a detail namespace
-  namespace detail {
+  // Hide these templates from the user inside a internal namespace
+  namespace internal {
 
     // --------------------------------------------
     // Recursive event terminator
@@ -86,7 +90,7 @@ namespace Coroutines {
 
     // update our array. Each argument will fill one slot of the array
     // each arg provides one we.
-    detail::fillChoose(wes, args...);
+    internal::fillChoose(wes, args...);
 
     // Now call our std wait function which will return -1 or the index
     // of the entry which is ready
@@ -94,7 +98,7 @@ namespace Coroutines {
 
     // Activate that option
     if (n >= 0 && n < nwe)
-      detail::runOption(0, n, args...);
+      internal::runOption(0, n, args...);
 
     // Return the index
     return n;

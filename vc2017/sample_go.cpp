@@ -43,7 +43,7 @@ StrChan boring(const char* label, TTimeDelta min_time = 0) {
     while (true) {
       if (!(sc << label))
         break;
-      Time::sleep(Time::MilliSecond * (min_time + (rand() % 1000)));
+      Time::sleep(min_time + Time::MilliSecond * ((rand() % 1000)));
     }
   });
   return sc;
@@ -83,7 +83,7 @@ THandle readChannel(StrChan c, int n) {
         break;
       dbg("%s\n", msg);
     }
-    dbg("Bye\n");
+    dbg("read Channels ends\n");
   });
 }
 

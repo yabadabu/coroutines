@@ -74,17 +74,16 @@ namespace Coroutines {
   // -------------------------------------------------
   namespace Time {
     
-    void sleep(TTimeDelta ms_to_sleep) {
-      wait(nullptr, 0, ms_to_sleep);
+    void sleep(TTimeDelta time_to_sleep) {
+      wait(nullptr, 0, time_to_sleep);
     }
 
     TWatchedEvent after(TTimeDelta ms_to_sleep) {
-      TWatchedEvent we(ms_to_sleep);
-      return we;
+      return TWatchedEvent(ms_to_sleep);
     }
   }
 
-  namespace detail {
+  namespace internal {
     // Recursive event terminator
     void fillChoose(TWatchedEvent* we) { 
     }

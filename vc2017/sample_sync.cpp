@@ -16,7 +16,7 @@ namespace HTTP {
     std::string uri;        // Given by the user
     std::string host;
     std::string path = "/";
-    std::string protocol_version = "HTTP/1.1";
+    std::string protocol_version = "HTTP/1.0";
     std::string method = "GET";
     std::string agent = "Mozilla/4.0 (compatible; MSIE5.01; Windows NT)";
     std::string request;
