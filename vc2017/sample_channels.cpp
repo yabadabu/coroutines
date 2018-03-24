@@ -13,7 +13,7 @@ void test_channels() {
   TSimpleDemo demo("test_channels");
 
   // to send/recv data between co's
-  auto ch1 = newChanMem<int>(3);
+  auto ch1 = IntsChannel::create(3);
   dbg("ch is %p\n", ch1);
 
   // co1 consumes
@@ -61,7 +61,7 @@ void test_channels_send_from_main() {
   TSimpleDemo demo("test_channels");
 
   // send data between co's
-  auto ch1 = newChanMem<int>(5);
+  auto ch1 = TTypedChannel<int>::create(5);
   dbg("ch is %p\n", ch1);
 
   // co1 consumes

@@ -189,8 +189,8 @@ bool download(TDownloadTask* dt) {
 void test_download_in_parallel() {
   TSimpleDemo demo("test_download_in_parallel");
 
-  auto ch_requests = newChanMem<TDownloadTask*>(10);
-  auto ch_acc = newChanMem<TDownloadTask*>(10);
+  auto ch_requests = TTypedChannel<TDownloadTask*>::create(10);
+  auto ch_acc = TTypedChannel<TDownloadTask*>::create(10);
   bool      all_queued = false;
   int       ndownloads = 0;
 
