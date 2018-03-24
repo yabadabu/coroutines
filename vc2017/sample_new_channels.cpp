@@ -195,13 +195,6 @@ TChanHandle registerChannel(TBaseChan* c, eChannelType channel_type) {
   return c->handle;
 }
 
-template< typename T >
-TChanHandle newChanMem(int max_capacity = 1) {
-  size_t bytes_per_elem = sizeof( T );
-  TMemChan* c = new TMemChan(max_capacity, bytes_per_elem);
-  return registerChannel(c, eChannelType::CT_MEMORY);
-}
-
 TChanHandle every(TTimeDelta interval_time) {
   TTimeChan* c = new TTimeChan(interval_time, true);
   all_channels.push_back(c);
@@ -214,9 +207,24 @@ TChanHandle after(TTimeDelta interval_time) {
   return registerChannel(c, eChannelType::CT_TIMER);
 }
 
+
+template< typename T >
+struct TTypedChannel : public TChanHandle {
+  TTypedChannel<T>(TChanHandle h) : TChanHandle(h) {};
+//  typedef typename T T;
+};
+
+template< typename T >
+TTypedChannel<T> newChanMem(int max_capacity = 1) {
+  size_t bytes_per_elem = sizeof(T);
+  TMemChan* c = new TMemChan(max_capacity, bytes_per_elem);
+  return registerChannel(c, eChannelType::CT_MEMORY);
+}
+
+
 // -------------------------------------------------------------
 template< typename T>
-bool push(TChanHandle cid, const T& obj) {
+bool push(TTypedChannel<T> cid, const T& obj) {
   
   TBaseChan* c = TBaseChan::findChannelByHandle(cid);
   if (!c || c->closed())
@@ -227,7 +235,7 @@ bool push(TChanHandle cid, const T& obj) {
 
 // -------------------------------------------------------------
 template< typename T>
-bool pull(TChanHandle cid, T& obj) {
+bool pull(TTypedChannel<T> cid, T& obj) {
 
   TBaseChan* c = TBaseChan::findChannelByHandle(cid);
   if (!c || ( c->closed() && c->empty() ))
@@ -249,12 +257,12 @@ bool pull(TChanHandle cid) {
 // -------------------------------------------------------------
 // -------------------------------------------------------------
 template< typename T >
-bool operator<<(T& p, TChanHandle c) {
+bool operator<<(T& p, TTypedChannel<T> c) {
   return pull(c, p);
 }
 
 template< typename T >
-bool operator<<(TChanHandle c, T&& p) {
+bool operator<<(TTypedChannel<T> c, T p) {
   return push(c, p);
 }
 
@@ -274,40 +282,13 @@ bool operator<<(TChanHandle c, T&& p) {
 // 
 // -------------------------------------------------------------
 
-/*
-int ch = newChannel<int>();
-int ch = newChannel<int>(10);
-push( ch, 2 );
-push<float>( ch, 2.f );
-int id;
-pull( ch, id );
-pull( ch, &id, sizeof(int));
-pull<float>( ch, fdata );
-closeChannel(ch);
-deleteChannel( ch );
-
-int ch = newTcpConnection(ip_addr)
-push( ch, 2 );
-pull( ch, id );
-int nbytes = pullUpTo( ch, addr, max_bytes_to_pull );
-deleteChannel( ch );
-
-int ch_s = newTcpServer(ip_addr);
-int ch_c = newTcpAccept( ch_s );
-...
-deleteChannel( ch_s );
-
-// Time functions
-
-*/
-
 // ---------------------------------------------------------
-TChanHandle new_boring(const char* label, TTimeDelta min_time = 0) {
+TTypedChannel<const char*> new_boring(const char* label, TTimeDelta min_time = 0) {
   auto sc = newChanMem<const char*>();
   start([sc, label, min_time]() {
     while (true) {
       dbg("Try to push %sto c:%08x\n", label, sc);
-      if (!push(sc, label))
+      if (!( sc << label))
         break;
       dbg("Pushed %s, no waiting a bit\n", label);
       Time::sleep(min_time + Time::milliseconds(rand() % 1000));
@@ -317,7 +298,7 @@ TChanHandle new_boring(const char* label, TTimeDelta min_time = 0) {
 }
 
 // -------------------------------------------------
-THandle new_readChannel(TChanHandle c, int max_reads) {
+THandle new_readChannel(TTypedChannel<const char*> c, int max_reads) {
   return start([c, max_reads]() {
     for (int i = 0; i < max_reads; ++i) {
       const char* msg = nullptr;
@@ -334,7 +315,7 @@ THandle new_readChannel(TChanHandle c, int max_reads) {
 void test_every_and_after() {
   TSimpleDemo demo("test_every_and_after");
 
-  auto t1 = every(Time::seconds(1));
+  auto t1 = every(Time::seconds(10));
   auto t2 = after(Time::seconds(3));
 
   auto coT2 = start([t1, t2]() {
@@ -354,10 +335,10 @@ void test_every_and_after() {
 // -------------------------------------------
 template< typename T >
 struct ifNewCanPullDef {
-  TChanHandle                  channel = 0;
+  TTypedChannel<T>             channel = 0;
   T                            obj;                 // Temporary storage to hold the recv data
   std::function<void(T& obj)>  cb;
-  ifNewCanPullDef(TChanHandle new_channel, std::function< void(T) >&& new_cb)
+  ifNewCanPullDef(TTypedChannel<T> new_channel, std::function< void(T) >&& new_cb)
     : channel(new_channel)
     , cb(new_cb)
   { }
@@ -374,7 +355,7 @@ struct ifNewCanPullDef {
 
 // Helper function to deduce the arguments in a fn, not as the ctor args
 template< typename T, typename TFn >
-ifNewCanPullDef<T> ifNewCanPull(TChanHandle chan, TFn&& new_cb) {
+ifNewCanPullDef<T> ifNewCanPull(TTypedChannel<T> chan, TFn&& new_cb) {
   return ifNewCanPullDef<T>(chan, new_cb);
 }
 
@@ -388,11 +369,11 @@ void test_new_choose() {
   auto coA = start([c1,c2,o1]() {
     while (true) {
       int n = choose(
-        ifNewCanPull<const char*>(c1, [c1, o1](const char* msg) {
+        ifNewCanPull(c1, [c1, o1](const char* msg) {
           dbg("Hi, I'm A and pulled data %s\n", msg);
           push(o1, msg);
         }),
-        ifNewCanPull<const char*>(c2, [c2, o1](auto msg) {
+        ifNewCanPull(c2, [c2, o1](auto msg) {
           dbg("Hi, I'm B and pulled data %s\n", msg);
           push(o1, msg);
         })
@@ -452,7 +433,7 @@ void test_go_closing_channels() {
 void sample_new_channels() {
   test_go_closing_channels();
   //test_new_choose();
-  //test_every_and_after();
+  test_every_and_after();
 }
 
 
@@ -460,3 +441,30 @@ void sample_new_channels() {
 // unless the channel is buffered
 
 
+
+/*
+int ch = newChannel<int>();
+int ch = newChannel<int>(10);
+push( ch, 2 );
+push<float>( ch, 2.f );
+int id;
+pull( ch, id );
+pull( ch, &id, sizeof(int));
+pull<float>( ch, fdata );
+closeChannel(ch);
+deleteChannel( ch );
+
+int ch = newTcpConnection(ip_addr)
+push( ch, 2 );
+pull( ch, id );
+int nbytes = pullUpTo( ch, addr, max_bytes_to_pull );
+deleteChannel( ch );
+
+int ch_s = newTcpServer(ip_addr);
+int ch_c = newTcpAccept( ch_s );
+...
+deleteChannel( ch_s );
+
+// Time functions
+
+*/
