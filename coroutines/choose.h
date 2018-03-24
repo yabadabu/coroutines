@@ -2,28 +2,6 @@
 
 namespace Coroutines {
 
-  namespace Time {
-
-    void sleep(TTimeDelta ms_to_sleep) {
-      wait(nullptr, 0, ms_to_sleep);
-    }
-
-    TTimeDelta milliseconds(int num_ms) {
-      return TTimeDelta(num_ms);
-    }
-
-    TWatchedEvent after(TTimeDelta ms_to_sleep) {
-      TWatchedEvent we(ms_to_sleep);
-      return we;
-    }
-
-  }
-
-}
-
-
-namespace Coroutines {
-
   // -------------------------------------------
   template< typename T >
   struct ifCanPullDef {
@@ -95,7 +73,7 @@ namespace Coroutines {
 
     // --------------------------------------------
     // Recursive event terminator
-    void fillChoose(TWatchedEvent* we) { }
+    void fillChoose(TWatchedEvent* we);
 
     template< typename A, typename ...Args >
     void fillChoose(TWatchedEvent* we, A& a, Args... args) {
@@ -104,9 +82,7 @@ namespace Coroutines {
     }
 
     // --------------------------------------------
-    void runOption(int idx, int the_option) {
-      assert( false && "Something weird is going on...\n");
-    }
+    void runOption(int idx, int the_option);
 
     template< typename A, typename ...Args >
     void runOption(int idx, int the_option, A& a, Args... args) {

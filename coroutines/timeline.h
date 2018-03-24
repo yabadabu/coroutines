@@ -26,6 +26,17 @@ namespace Coroutines {
     TTimeDelta elapsed() const { return now() - start; }
   };
 
+  // ---------------------------------------------------------
+  namespace Time {
+
+    void sleep(TTimeDelta ms_to_sleep);
+    TTimeDelta milliseconds(int num_ms);
+    TTimeDelta seconds(int num_secs);
+    TWatchedEvent after(TTimeDelta ms_to_sleep);
+
+  }
+
+
 }
 
 #endif

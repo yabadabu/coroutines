@@ -20,6 +20,10 @@ void dbg(const char *fmt, ...) {
   long nsecs, nmsecs;
   getSecondsAndMilliseconds(time_since_boot, &nsecs, &nmsecs);
   printf("[%04d.%03d:%05x] %02d.%02d %s", (int)nsecs, (int)nmsecs, (int)getNumLoops(), current().id, current().age, buf);
+#ifdef WIN32
+  if( !strchr( buf, '\r') )
+    ::OutputDebugStringA(buf);
+#endif
 }
 
 void runUntilAllCoroutinesEnd() {

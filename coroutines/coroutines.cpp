@@ -43,7 +43,7 @@ namespace Coroutines {
       TWatchedEvent*            event_waking_me_up = nullptr;      // Which event took us from the WAITING_FOR_EVENT
       
       // Waiting events info
-      TWatchedEvent             timeot_watched_event;
+      TWatchedEvent             timeout_watched_event;
       TTimeStamp                timeout_watching_events = Coroutines::no_timeout;  // 
       TWatchedEvent*            watched_events = nullptr;
       int                       nwatched_events = 0;
@@ -240,7 +240,19 @@ namespace Coroutines {
           break; }
 
         case EVT_TIMEOUT: {
-          timeout = we->time.time_to_trigger - we->time.time_programmed;
+          registerTimeoutEvent(we);
+          break; }
+
+        case EVT_NEW_CHANNEL_CAN_PULL: {
+          auto c = TBaseChan::findChannelByHandle(we->nchannel.channel);
+          assert(c);
+          c->waiting_for_pull.append(we);
+          break; }
+
+        case EVT_NEW_CHANNEL_CAN_PUSH: {
+          auto c = TBaseChan::findChannelByHandle(we->nchannel.channel);
+          assert(c);
+          c->waiting_for_push.append(we);
           break; }
 
         default:
@@ -253,8 +265,8 @@ namespace Coroutines {
       // Do we have to install a timeout event watch?
       if (timeout != no_timeout) {
         assert(timeout >= 0);
-        co->timeot_watched_event = TWatchedEvent(timeout);
-        registerTimeoutEvent(&co->timeot_watched_event);
+        co->timeout_watched_event = TWatchedEvent(timeout);
+        registerTimeoutEvent(&co->timeout_watched_event);
       }
 
       // Put ourselves to sleep
@@ -273,7 +285,7 @@ namespace Coroutines {
 
       // If we had programmed a timeout, remove it
       if (co->timeout_watching_events != no_timeout) {
-        unregisterTimeoutEvent(&co->timeot_watched_event);
+        unregisterTimeoutEvent(&co->timeout_watched_event);
         event_idx = wait_timedout;
       }
 
@@ -314,7 +326,20 @@ namespace Coroutines {
           break; }
 
         case EVT_TIMEOUT:
+          unregisterTimeoutEvent(we);
           break;
+
+        case EVT_NEW_CHANNEL_CAN_PULL: {
+          auto c = TBaseChan::findChannelByHandle(we->nchannel.channel);
+          assert(c);
+          c->waiting_for_pull.detach(we);
+          break; }
+
+        case EVT_NEW_CHANNEL_CAN_PUSH: {
+          auto c = TBaseChan::findChannelByHandle(we->nchannel.channel);
+          assert(c);
+          c->waiting_for_push.detach(we);
+          break; }
 
         default:
           // Unsupported event type
@@ -413,18 +438,10 @@ namespace Coroutines {
   void waitAll() {
 
   }
-
-  // --------------------------------------------------------------
-  int wait(TWatchedEvent* watched_events, int nwatched_events, TTimeDelta timeout) {
-    
-    // Main thread can't wait for other co to finish
-    assert(isHandle(current()));
-
-    auto co = internal::byHandle(current());
-    assert(co);
-
-    // First check if any of the wait conditions we can quickly test are false, so there is no need to enter in the wait
-    // for event mode
+  
+  // First check if any of the wait conditions we can quickly test are false, so there is no need to enter in the wait
+  // for event mode
+  int isAnyReadyWithoutBlocking(TWatchedEvent* watched_events, int nwatched_events) {
     int idx = 0;
     while (idx < nwatched_events) {
       auto we = watched_events + idx;
@@ -452,12 +469,39 @@ namespace Coroutines {
           return idx;
         break; }
 
+      case EVT_NEW_CHANNEL_CAN_PULL: {
+        TBaseChan* c = TBaseChan::findChannelByHandle(we->nchannel.channel);
+        if (c && (!c->empty() || c->closed()))
+          return idx;
+        break; }
+
+      case EVT_NEW_CHANNEL_CAN_PUSH: {
+        TBaseChan* c = TBaseChan::findChannelByHandle(we->nchannel.channel);
+        if (c && (!c->full() && !c->closed()))
+          return idx;
+        break; }
+
       default:
         break;
       }
 
       ++idx;
     }
+
+    return -1;
+  }
+
+  // --------------------------------------------------------------
+  int wait(TWatchedEvent* watched_events, int nwatched_events, TTimeDelta timeout) {
+    
+    // Main thread can't wait for other co to finish
+    assert(isHandle(current()));
+
+    auto co = internal::byHandle(current());
+    assert(co);
+
+    if (int idx = isAnyReadyWithoutBlocking(watched_events, nwatched_events) >= 0)
+      return idx;
 
     internal::registerToEvents(co, watched_events, nwatched_events, timeout);
 

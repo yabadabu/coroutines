@@ -95,6 +95,42 @@ namespace Coroutines {
   };
 
 
+
+
+  // --------------------------------------------------------------
+  class TBaseChan {
+  protected:
+    bool     is_closed = false;
+
+  public:
+
+    int32_t  h_channel = 0;
+    TList    waiting_for_push;
+    TList    waiting_for_pull;
+
+    void close() {
+      is_closed = true;
+      // Wake up all threads waiting for me...
+      // Waiting for pushing...
+      while (auto we = waiting_for_push.detachFirst< TWatchedEvent >())
+        wakeUp(we);
+      // or waiting for pulling...
+      while (auto we = waiting_for_pull.detachFirst< TWatchedEvent >())
+        wakeUp(we);
+    }
+
+    bool closed() const { return is_closed; }
+    virtual bool empty() const { return true; }
+    virtual bool full() const { return false; }
+
+    virtual bool pull(void* obj, size_t nbytes) { return false; }
+    virtual bool push(const void* obj, size_t nbytes) { return false; }
+  
+    static TBaseChan* findChannelByHandle(int cid);
+  };
+  
+
+
 }
 
 #endif

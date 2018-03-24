@@ -71,4 +71,38 @@ namespace Coroutines {
     waiting_for_timeouts.detach(we);
   }
 
+  // -------------------------------------------------
+  namespace Time {
+    
+    void sleep(TTimeDelta ms_to_sleep) {
+      wait(nullptr, 0, ms_to_sleep);
+    }
+
+    TTimeDelta milliseconds(int num_ms) {
+      return TTimeDelta(num_ms);
+    }
+
+    TTimeDelta Second = TTimeDelta(1000);
+    TTimeDelta MilliSecond = TTimeDelta(1);
+
+    TTimeDelta seconds(int num_secs) {
+      return milliseconds(num_secs * 1000);
+    }
+
+    TWatchedEvent after(TTimeDelta ms_to_sleep) {
+      TWatchedEvent we(ms_to_sleep);
+      return we;
+    }
+  }
+
+  namespace detail {
+    // Recursive event terminator
+    void fillChoose(TWatchedEvent* we) { 
+    }
+    
+    void runOption(int idx, int the_option) {
+      assert(false && "Something weird is going on...\n");
+    }
+  }
+
 }

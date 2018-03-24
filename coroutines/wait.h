@@ -11,6 +11,10 @@ namespace Coroutines {
   , EVT_CHANNEL_CAN_PULL
   , EVT_SOCKET_IO_CAN_READ
   , EVT_SOCKET_IO_CAN_WRITE
+
+  , EVT_NEW_CHANNEL_CAN_PUSH
+  , EVT_NEW_CHANNEL_CAN_PULL
+
   , EVT_INVALID
   , EVT_TYPES_COUNT
   };
@@ -45,6 +49,12 @@ namespace Coroutines {
         TEventID    event_id;
       } user_event;
 
+      struct {
+        int           channel;
+        void*         data_addr;
+        size_t        data_size;
+      } nchannel;
+
     };
 
     // Specialized ctors
@@ -55,8 +65,18 @@ namespace Coroutines {
     TWatchedEvent(TRawChannel* new_channel, const TObj &obj, eEventType evt)
     {
       channel.channel = new_channel;
-      channel.data_addr = (void*) &obj;
+      channel.data_addr = (void*)&obj;
       channel.data_size = sizeof(TObj);
+      event_type = evt;
+      owner = current();
+    }
+
+    // Wait until the we can push/pull an item into/from that channel
+    TWatchedEvent(int new_channel, const void* obj, size_t obj_size, eEventType evt)
+    {
+      nchannel.channel = new_channel;
+      nchannel.data_addr = (void*) obj;
+      nchannel.data_size = obj_size;
       event_type = evt;
       owner = current();
     }

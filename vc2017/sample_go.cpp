@@ -186,6 +186,7 @@ StrChan* fanInSelect(StrChan* a, StrChan* b) {
 
   return c;
 }
+
 // --------------------------------------------------------------
 // User code
 StrChan* fanInSelect2(StrChan* a, StrChan* b) {
