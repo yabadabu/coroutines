@@ -143,21 +143,26 @@ namespace Coroutines {
 
   };
 
-
-  
   // -------------------------------------------------------------
   // Create a new 'typed' handle to channel
   template< typename T >
   struct TTypedChannel : public TChanHandle {
     TTypedChannel<T>(TChanHandle h) : TChanHandle(h) {};
+    static TTypedChannel<T> create(size_t max_capacity = 1);
   };
 
   template< typename T >
-  TTypedChannel<T> newChanMem(int max_capacity = 1) {
+  TTypedChannel<T> newChanMem(size_t max_capacity = 1) {
     size_t bytes_per_elem = sizeof(T);
     TMemChan* c = new TMemChan(max_capacity, bytes_per_elem);
     return registerChannel(c, eChannelType::CT_MEMORY);
   }
+
+  template< typename T >
+  TTypedChannel<T> TTypedChannel<T>::create(size_t max_capacity) {
+    return newChanMem<T>(max_capacity);
+  }
+
 
   // -------------------------------------------------------------
   template< typename T>

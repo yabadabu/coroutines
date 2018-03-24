@@ -11,7 +11,7 @@ typedef TTypedChannel<const char*> StrChan;
 // -----------------------------------------------------------
 void test_concurrency() {
 
-  auto sc = newChanMem<const char*>();
+  auto sc = StrChan::create();
 
   auto co1 = start(std::bind([sc]( const char* label ){
     while (true) {
@@ -38,7 +38,7 @@ void test_concurrency() {
 
 // ---------------------------------------------------------
 StrChan boring(const char* label, int min_time = 0) {
-  auto sc = newChanMem<const char*>();
+  auto sc = StrChan::create();
   start([sc, label, min_time]() {
     while (true) {
       if (!(sc << label))
@@ -89,7 +89,7 @@ THandle readChannel(StrChan c, int n) {
 
 
 StrChan fanIn(StrChan a, StrChan b) {
-  StrChan c = newChanMem<const char*>();
+  auto c = StrChan::create();
 
   start([c, a]() {
     const char* msg;
@@ -129,7 +129,7 @@ void test_fanIn() {
 
 // -------------------------------------------
 StrChan fanInSelect(StrChan a, StrChan b) {
-  auto c = newChanMem<const char*>();
+  auto c = StrChan::create();
 
   start([c, a, b]() {
     while (true) {
@@ -162,7 +162,7 @@ StrChan fanInSelect(StrChan a, StrChan b) {
 // --------------------------------------------------------------
 // User code
 StrChan fanInSelect2(StrChan a, StrChan b) {
-  StrChan c = newChanMem<const char*>();
+  auto c = StrChan::create();
 
   start([c, a, b]() {
     while (true) {
@@ -212,37 +212,9 @@ void test_select() {
 
 // ----------------------------------------------------------
 void sample_go() {
-///  test_concurrency();
+//  test_concurrency();
 //  test_borings();
 //  test_fanIn();
   test_select();
 }
 
-
-/*
-
-int ch = newChannel<int>();
-int ch = newChannel<int>(10);
-push( ch, 2 );
-push<float>( ch, 2.f );
-int id;
-pull( ch, id );
-pull( ch, &id, sizeof(int));
-pull<float>( ch, fdata );
-closeChannel(ch);
-deleteChannel( ch );
-
-int ch = newTcpConnection(ip_addr)
-push( ch, 2 );
-pull( ch, id );
-int nbytes = pullUpTo( ch, addr, max_bytes_to_pull );
-deleteChannel( ch );
-
-int ch_s = newTcpServer(ip_addr);
-int ch_c = newTcpAccept( ch_s );
-...
-deleteChannel( ch_s );
-
-// Time functions
-
-*/

@@ -190,10 +190,11 @@ bool operator<<(TTimeStamp& value, TChanHandle cid) {
 // 
 // 
 // -------------------------------------------------------------
+typedef TTypedChannel<const char*> StrChan;
 
 // ---------------------------------------------------------
 TTypedChannel<const char*> new_boring(const char* label, TTimeDelta min_time = 0) {
-  auto sc = newChanMem<const char*>();
+  auto sc = StrChan::create();
   start([sc, label, min_time]() {
     while (true) {
       dbg("Try to push %sto c:%08x\n", label, sc);
@@ -247,7 +248,7 @@ void test_new_choose() {
 
   auto c1 = new_boring("John", Time::seconds(1));
   auto c2 = new_boring("Peter", Time::seconds(1));
-  auto o1 = newChanMem<const char*>();
+  auto o1 = StrChan::create();
 
   auto coA = start([c1,c2,o1]() {
     while (true) {
@@ -318,7 +319,7 @@ void test_go_closing_channels() {
 void test_read_closed_channels() {
   TSimpleDemo demo("test_read_closed_channels");
   start([]() {
-    auto queue = newChanMem<const char*>(2);
+    auto queue = StrChan::create(2);
     queue << "one";
     queue << "two";
     closeChan(queue);
