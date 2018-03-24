@@ -2,16 +2,16 @@ This is a C++ wrapper to run coroutines using fcontext as a switching platform.
 
 ** TODO
 
-- Remove old channels
 - Add io channels as regular channels
 - Close channel to ChanHandle
 - Add more examples
 - Remove old entries from 'VDescriptors' at internal::TIOEvents once done
-- Move TChannel/CIOHandle to handle-based resource or simple identifiers
 - Wait for Barrier.
 - Wait for async file reads
 - Test poll, epoll
 - Add HTTP download
++ Remove old channels
++ Move TChannel/CIOHandle to handle-based resource or simple identifiers
 + Allow user to create his own events, which when triggered will wake up
 + Support for IPv6
 + Test in unix/osx 

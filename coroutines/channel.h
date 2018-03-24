@@ -203,6 +203,9 @@ namespace Coroutines {
     return push(c, p);
   }
 
+  bool operator<<(TTimeStamp& value, TChanHandle cid);
+  TChanHandle every(TTimeDelta interval_time);
+  TChanHandle after(TTimeDelta interval_time);
 
 }
 
