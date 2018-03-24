@@ -76,7 +76,7 @@ namespace Coroutines {
     return c->handle;
   }
 
-  bool closeChan(TChanHandle cid) {
+  bool close(TChanHandle cid) {
     TBaseChan* c = TBaseChan::findChannelByHandle(cid);
     if (!c || c->closed())
       return false;

@@ -69,8 +69,8 @@ void test_borings() {
   // Only wait for co2
   while (isHandle(co2))
     executeActives();
-  closeChan(b1);
-  closeChan(b2);
+  close(b1);
+  close(b2);
   dbg("Done\n");
 }
 
@@ -120,9 +120,9 @@ void test_fanIn() {
   while (isHandle(co2))
     executeActives();
 
-  closeChan(b);
-  closeChan(b1);
-  closeChan(b2);
+  close(b);
+  close(b1);
+  close(b2);
 
   dbg("Done\n");
 }
@@ -144,7 +144,7 @@ StrChan fanInSelect(StrChan a, StrChan b) {
       int n = wait(we, 3);
       if (n == 2 || n == -1) {
         dbg("Too slows..\n");
-        closeChan(c);
+        close(c);
         break;
       }
       StrChan ic = (n == 0) ? a : b;
@@ -184,7 +184,7 @@ StrChan fanInSelect2(StrChan a, StrChan b) {
 
       if (n == 2 || n == -1) {
         dbg("Too slows..\n");
-        closeChan(c);
+        close(c);
         break;
       }
     }
@@ -205,9 +205,9 @@ void test_select() {
   while (isHandle(co2))
     executeActives();
 
-  closeChan(b);
-  closeChan(b1);
-  closeChan(b2);
+  close(b);
+  close(b1);
+  close(b2);
 }
 
 // ----------------------------------------------------------

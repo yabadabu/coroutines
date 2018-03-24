@@ -56,7 +56,7 @@ void test_every_and_after() {
   auto coT2 = start([t1, t2]() {
     pull(t2);
     dbg("After t2 timeouts..., closing the 'every' channel t1\n");
-    closeChan(t1);
+    close(t1);
   });
 
   auto coT = start([t1]() {
@@ -98,9 +98,9 @@ void test_new_choose() {
   auto co2 = new_readChannel(o1, 5);
   start([&]() {
     wait(co2);
-    closeChan(c1);
-    closeChan(c2);
-    closeChan(o1);
+    close(c1);
+    close(c2);
+    close(o1);
   });
 }
 
@@ -130,7 +130,7 @@ void test_go_closing_channels() {
       jobs << i;
       dbg("Sent job %d\n", i);
     }
-    closeChan(jobs);
+    close(jobs);
     dbg("sent all jobs, channel is now closed\n");
 
     pull(done);
@@ -147,7 +147,7 @@ void test_read_closed_channels() {
     auto queue = StrChan::create(2);
     queue << "one";
     queue << "two";
-    closeChan(queue);
+    close(queue);
     const char* msg;
     while (msg << queue) {
       dbg("Recv %s\n", msg);
@@ -171,7 +171,7 @@ void test_tickers() {
       }
     });
     Time::sleep(1600 * Time::MilliSecond);
-    closeChan(ticker);
+    close(ticker);
     dbg("Ticker stopped\n");
   });
 }
@@ -200,7 +200,7 @@ void test_go_worker_pool() {
     dbg("Sending work...\n");
     for (int i = 1; i <= 5; ++i)
       jobs << i;
-    closeChan(jobs);
+    close(jobs);
     dbg("Receiving results...\n");
     for (int i = 0; i < 5; ++i) {
       int r;
