@@ -16,7 +16,7 @@ void test_concurrency() {
   auto co1 = start(std::bind([sc]( const char* label ){
     while (true) {
       sc << label;
-      Time::sleep(Time::milliseconds(1000));
+      Time::sleep(Time::Second);
     }
   }, "john"));
 
@@ -37,13 +37,13 @@ void test_concurrency() {
 }
 
 // ---------------------------------------------------------
-StrChan boring(const char* label, int min_time = 0) {
+StrChan boring(const char* label, TTimeDelta min_time = 0) {
   auto sc = StrChan::create();
   start([sc, label, min_time]() {
     while (true) {
       if (!(sc << label))
         break;
-      Time::sleep(Time::milliseconds(min_time + (rand() % 1000)));
+      Time::sleep(Time::MilliSecond * (min_time + (rand() % 1000)));
     }
   });
   return sc;
@@ -137,8 +137,8 @@ StrChan fanInSelect(StrChan a, StrChan b) {
       // Wait until we can 'read' from any of those channels
       const char* msg;
       TWatchedEvent we[3] = { 
-        TWatchedEvent(a.asU32(), eEventType::EVT_NEW_CHANNEL_CAN_PULL ), 
-        TWatchedEvent(b.asU32(), eEventType::EVT_NEW_CHANNEL_CAN_PULL ),
+        TWatchedEvent(a.asU32(), eEventType::EVT_CHANNEL_CAN_PULL ), 
+        TWatchedEvent(b.asU32(), eEventType::EVT_CHANNEL_CAN_PULL ),
         Time::after( 400 )
       };
       int n = wait(we, 3);
@@ -169,11 +169,11 @@ StrChan fanInSelect2(StrChan a, StrChan b) {
       
       // Wait until we can 'read' from any of those channels
       int n = choose(
-        ifNewCanPull(a, [c](const char* msg) {
+        ifCanPull(a, [c](const char* msg) {
           dbg("Hi, I'm A and pulled data %s\n", msg);
           c << msg;
         }),
-        ifNewCanPull(b, [c](auto msg) {
+        ifCanPull(b, [c](auto msg) {
           dbg("Hi, I'm B and pulled data %s\n", msg);
           c << msg;
         }),

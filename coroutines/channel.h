@@ -112,7 +112,7 @@ namespace Coroutines {
       assert(this);
 
       while (empty() && !closed()) {
-        TWatchedEvent evt(handle.asU32(), EVT_NEW_CHANNEL_CAN_PULL);
+        TWatchedEvent evt(handle.asU32(), EVT_CHANNEL_CAN_PULL);
         wait(&evt, 1);
       }
 
@@ -130,7 +130,7 @@ namespace Coroutines {
       assert(nbytes == bytes_per_elem);
 
       while (full() && !closed()) {
-        TWatchedEvent evt(handle.asU32(), EVT_NEW_CHANNEL_CAN_PUSH);
+        TWatchedEvent evt(handle.asU32(), EVT_CHANNEL_CAN_PUSH);
         wait(&evt, 1);
       }
 

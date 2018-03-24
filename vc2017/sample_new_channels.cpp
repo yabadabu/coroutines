@@ -22,7 +22,7 @@ namespace Coroutines {
     auto we = waiting_for_pull.detachFirst< TWatchedEvent >();
     if (we) {
       assert(we->nchannel.channel == handle.asU32());
-      assert(we->event_type == EVT_NEW_CHANNEL_CAN_PULL);
+      assert(we->event_type == EVT_CHANNEL_CAN_PULL);
       wakeUp(we);
     }
   }
@@ -41,7 +41,7 @@ namespace Coroutines {
     auto we = waiting_for_push.detachFirst< TWatchedEvent >();
     if (we) {
       assert(we->nchannel.channel == handle.asU32());
-      assert(we->event_type == EVT_NEW_CHANNEL_CAN_PUSH);
+      assert(we->event_type == EVT_CHANNEL_CAN_PUSH);
       wakeUp(we);
     }
 
@@ -93,7 +93,7 @@ public:
     // We can also exit from the wait IF this channel 
     // becomes 'closed' while we are waiting.
     // The 'close' will trigger this event
-    wes[1] = TWatchedEvent(handle.asU32(), eEventType::EVT_NEW_CHANNEL_CAN_PULL);
+    wes[1] = TWatchedEvent(handle.asU32(), eEventType::EVT_CHANNEL_CAN_PULL);
     int idx = wait(wes, 2);
     if (idx == -1)
       return false;
@@ -201,7 +201,7 @@ TTypedChannel<const char*> new_boring(const char* label, TTimeDelta min_time = 0
       if (!( sc << label))
         break;
       dbg("Pushed %s, no waiting a bit\n", label);
-      Time::sleep(min_time + Time::milliseconds(rand() % 1000));
+      Time::sleep(min_time + (rand() % 1000) * Time::MilliSecond);
     }
   });
   return sc;
@@ -225,8 +225,8 @@ THandle new_readChannel(TTypedChannel<const char*> c, int max_reads) {
 void test_every_and_after() {
   TSimpleDemo demo("test_every_and_after");
 
-  auto t1 = every(Time::seconds(3));
-  auto t2 = after(Time::seconds(4));
+  auto t1 = every( 3 * Time::Second);
+  auto t2 = after( 4 * Time::Second);
 
   auto coT2 = start([t1, t2]() {
     pull(t2);
@@ -246,18 +246,18 @@ void test_every_and_after() {
 void test_new_choose() {
   TSimpleDemo demo("test_new_choose");
 
-  auto c1 = new_boring("John", Time::seconds(1));
-  auto c2 = new_boring("Peter", Time::seconds(1));
+  auto c1 = new_boring("John", Time::Second);
+  auto c2 = new_boring("Peter", Time::Second);
   auto o1 = StrChan::create();
 
   auto coA = start([c1,c2,o1]() {
     while (true) {
       int n = choose(
-        ifNewCanPull(c1, [c1, o1](const char* msg) {
+        ifCanPull(c1, [c1, o1](const char* msg) {
           dbg("Hi, I'm A and pulled data %s\n", msg);
           push(o1, msg);
         }),
-        ifNewCanPull(c2, [c2, o1](auto msg) {
+        ifCanPull(c2, [c2, o1](auto msg) {
           dbg("Hi, I'm B and pulled data %s\n", msg);
           push(o1, msg);
         })

@@ -235,13 +235,13 @@ namespace Coroutines {
           registerTimeoutEvent(we);
           break; }
 
-        case EVT_NEW_CHANNEL_CAN_PULL: {
+        case EVT_CHANNEL_CAN_PULL: {
           auto c = TBaseChan::findChannelByHandle(TChanHandle( we->nchannel.channel ));
           assert(c);
           c->waiting_for_pull.append(we);
           break; }
 
-        case EVT_NEW_CHANNEL_CAN_PUSH: {
+        case EVT_CHANNEL_CAN_PUSH: {
           auto c = TBaseChan::findChannelByHandle(TChanHandle(we->nchannel.channel));
           assert(c);
           c->waiting_for_push.append(we);
@@ -313,13 +313,13 @@ namespace Coroutines {
           unregisterTimeoutEvent(we);
           break;
 
-        case EVT_NEW_CHANNEL_CAN_PULL: {
+        case EVT_CHANNEL_CAN_PULL: {
           auto c = TBaseChan::findChannelByHandle(TChanHandle( we->nchannel.channel ));
           assert(c);
           c->waiting_for_pull.detach(we);
           break; }
 
-        case EVT_NEW_CHANNEL_CAN_PUSH: {
+        case EVT_CHANNEL_CAN_PUSH: {
           auto c = TBaseChan::findChannelByHandle(TChanHandle(we->nchannel.channel));
           assert(c);
           c->waiting_for_push.detach(we);
@@ -443,13 +443,13 @@ namespace Coroutines {
           return idx;
         break; }
 
-      case EVT_NEW_CHANNEL_CAN_PULL: {
+      case EVT_CHANNEL_CAN_PULL: {
         auto c = TBaseChan::findChannelByHandle(TChanHandle( we->nchannel.channel ));
         if (c && (!c->empty() || c->closed()))
           return idx;
         break; }
 
-      case EVT_NEW_CHANNEL_CAN_PUSH: {
+      case EVT_CHANNEL_CAN_PUSH: {
         auto c = TBaseChan::findChannelByHandle(TChanHandle(we->nchannel.channel));
         if (c && (!c->full() && !c->closed()))
           return idx;

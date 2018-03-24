@@ -78,14 +78,6 @@ namespace Coroutines {
       wait(nullptr, 0, ms_to_sleep);
     }
 
-    TTimeDelta milliseconds(int num_ms) {
-      return TTimeDelta(num_ms);
-    }
-
-    TTimeDelta seconds(int num_secs) {
-      return milliseconds(num_secs * 1000);
-    }
-
     TWatchedEvent after(TTimeDelta ms_to_sleep) {
       TWatchedEvent we(ms_to_sleep);
       return we;

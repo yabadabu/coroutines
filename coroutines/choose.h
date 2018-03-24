@@ -4,16 +4,16 @@ namespace Coroutines {
 
   // -------------------------------------------
   template< typename T >
-  struct ifNewCanPullDef {
+  struct ifCanPullDef {
     TTypedChannel<T>             channel = 0;
     T                            obj;                 // Temporary storage to hold the recv data
     std::function<void(T& obj)>  cb;
-    ifNewCanPullDef(TTypedChannel<T> new_channel, std::function< void(T) >&& new_cb)
+    ifCanPullDef(TTypedChannel<T> new_channel, std::function< void(T) >&& new_cb)
       : channel(new_channel)
       , cb(new_cb)
     { }
     void declareEvent(TWatchedEvent* we) {
-      *we = TWatchedEvent(channel.asU32(), eEventType::EVT_NEW_CHANNEL_CAN_PULL);
+      *we = TWatchedEvent(channel.asU32(), eEventType::EVT_CHANNEL_CAN_PULL);
     }
     void run() {
       dbg("choose.can pull fired from channel c:%08x\n", channel);
@@ -24,8 +24,8 @@ namespace Coroutines {
 
   // Helper function to deduce the arguments in a fn, not as the ctor args
   template< typename T, typename TFn >
-  ifNewCanPullDef<T> ifNewCanPull(TTypedChannel<T> chan, TFn&& new_cb) {
-    return ifNewCanPullDef<T>(chan, new_cb);
+  ifCanPullDef<T> ifCanPull(TTypedChannel<T> chan, TFn&& new_cb) {
+    return ifCanPullDef<T>(chan, new_cb);
   }
 
   // -------------------------------------------------------------
