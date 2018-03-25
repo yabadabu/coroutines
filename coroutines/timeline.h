@@ -32,9 +32,10 @@ namespace Coroutines {
     void sleep(TTimeDelta ms_to_sleep);
     TWatchedEvent after(TTimeDelta ms_to_sleep);
     
-    static const TTimeDelta Second = TTimeDelta(1000);
     static const TTimeDelta MilliSecond = TTimeDelta(1);
-
+    static const TTimeDelta Second = 1000 * MilliSecond;
+    static const TTimeDelta Minute = 60 * Second;
+    static const TTimeDelta Hour = 60 * Minute;
 
   }
 

@@ -29,18 +29,18 @@ void test_yield() {
 }
 
 // -----------------------------------------------------------
-void basic_wait_time(const char* title, int milli_secs) {
-  dbg("%s boots. Will wait %d milli_secs\n", title, milli_secs);
-  wait(nullptr, 0, milli_secs);
-  dbg("%s After waiting %d ticks we leave\n", title, milli_secs);
+void basic_wait_time(const char* title, TTimeDelta amount_of_time) {
+  dbg("%s boots. Will wait %d milli_secs\n", title, amount_of_time);
+  wait(nullptr, 0, amount_of_time);
+  dbg("%s After waiting %d ticks we leave\n", title, amount_of_time);
 }
 
 void test_wait_time() {
   TScopedTime tm;
   {
     TSimpleDemo demo("test_wait_time");
-    auto co1 = start([]() { basic_wait_time("co1", 3000); });
-    auto co2 = start([]() { basic_wait_time("co2", 5000); });
+    auto co1 = start([]() { basic_wait_time("co1", 3 * Time::Second); });
+    auto co2 = start([]() { basic_wait_time("co2", 5 * Time::Second); });
   }
   auto elapsed = tm.elapsed();
   dbg("test_wait_time expected to finish in %d msecs, and finished in %d...\n", 5000, elapsed );

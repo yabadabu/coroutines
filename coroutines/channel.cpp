@@ -12,8 +12,8 @@ namespace Coroutines {
 
     // -------------------------------------------------------------
     TChanHandle registerChannel(TBaseChan* c, eChannelType channel_type) {
-      all_channels.push_back(c);
       // Right now add it to the end...
+      all_channels.push_back(c);
       c->handle = TChanHandle(channel_type, (int32_t)all_channels.size() - 1);
       return c->handle;
     }
@@ -22,7 +22,7 @@ namespace Coroutines {
     TBaseChan* TBaseChan::findChannelByHandle(TChanHandle h) {
 
       // The channel id is valid?
-      if (h.index < 0 || h.index >= all_channels.size())
+      if (h.index >= all_channels.size())
         return nullptr;
 
       auto c = all_channels[h.index];
@@ -30,6 +30,33 @@ namespace Coroutines {
 
       return (c->handle == h) ? c : nullptr;
     }
+  
+    // ------------------------------------------------------------
+    // For each elem pushed, wakeup one waiter to pull
+    bool TBaseChan::detachOneWaitingForPull() {
+      auto we = waiting_for_pull.detachFirst< TWatchedEvent >();
+      if (we) {
+        assert(we->channel.handle == handle);
+        assert(we->event_type == EVT_CHANNEL_CAN_PULL);
+        wakeUp(we);
+        return true;
+      }
+      return false;
+    }
+
+    // ------------------------------------------------------------
+    // For each elem pulled, wakeup one waiter to push
+    bool TBaseChan::detachOneWaitingForPush() {
+      auto we = waiting_for_push.detachFirst< TWatchedEvent >();
+      if (we) {
+        assert(we->channel.handle == handle);
+        assert(we->event_type == EVT_CHANNEL_CAN_PUSH);
+        wakeUp(we);
+        return true;
+      }
+      return false;
+    }
+
   }
 
   // -------------------------------------------------------------
@@ -132,6 +159,11 @@ namespace Coroutines {
       return false;
     c->close();
     return true;
+  }
+
+  bool isChannel(TChanHandle cid) {
+    auto c = internal::TBaseChan::findChannelByHandle(cid);
+    return c != nullptr;
   }
 
 }
