@@ -14,7 +14,10 @@ typedef SOCKET           SOCKET_ID;
   
 #else     // -----------------------------------------------------------
 
+#include <sys/types.h>
+#include <sys/socket.h>
 #include <sys/select.h>
+#include <netdb.h>                // struct addrinfo
 typedef int              SOCKET_ID;
 
 #endif    // -----------------------------------------------------------

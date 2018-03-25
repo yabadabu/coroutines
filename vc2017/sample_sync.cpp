@@ -57,7 +57,7 @@ namespace HTTP {
       if (c == std::string::npos)
         return false;
 
-      sscanf_s(header.data() + c + 16, "%ld", &header_content_size);
+      sscanf(header.data() + c + 16, "%d", &header_content_size);
       dbg("Content size is %d\n", header_content_size);
       content_size = header_content_size;
       return true;

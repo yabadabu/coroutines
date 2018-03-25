@@ -5,6 +5,7 @@
 #include "coroutines/choose.h"
 
 using namespace Coroutines;
+using Coroutines::wait;
 
 // -------------------------------------------------------------
 typedef TTypedChannel<const char*> StrChan;
@@ -17,8 +18,8 @@ THandle readChannel(StrChan c, int max_reads);
 void test_every_and_after() {
   TSimpleDemo demo("test_every_and_after");
 
-  auto t1 = every( 5 * Time::Second);
-  auto t2 = after( 2 * Time::Second);
+  auto t1 = every( 2 * Time::Second);
+  auto t2 = after( 5 * Time::Second);
 
   auto coT2 = start([t1, t2]() {
     pull(t2);
@@ -34,7 +35,7 @@ void test_every_and_after() {
 
 }
 
-
+// ---------------------------------------------------------
 void test_new_choose() {
   TSimpleDemo demo("test_new_choose");
 
@@ -48,7 +49,7 @@ void test_new_choose() {
         ifCanPull(c1, [f](const char* msg) {
           f << msg;
         }),
-        ifCanPull(c2, [f](auto msg) {
+        ifCanPull(c2, [f](const char* msg) {
           push(f, msg);
         }),
         ifTimeout(1500, []() {
@@ -255,14 +256,14 @@ void test_non_pods() {
 
 
 void sample_new_channels() {
+  test_every_and_after();
   //test_go_closing_channels();
-  //test_every_and_after();
   //test_read_closed_channels();
   //test_tickers();
   //test_go_worker_pool();
   //test_new_choose();
   //test_chain_of_channels();
-  test_non_pods();
+  //test_non_pods();
 }
 
 

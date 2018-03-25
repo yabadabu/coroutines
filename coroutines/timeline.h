@@ -6,13 +6,13 @@
 
 namespace Coroutines {
 
-  // Num of milliseconds
+  // Currently stored in num of milliseconds
   typedef uint64_t      TTimeStamp;
-  typedef uint64_t      TTimeDelta;
+  typedef  int64_t      TTimeDelta;
 
   struct TWatchedEvent;
 
-  void getSecondsAndMilliseconds(TTimeStamp ts, long* num_secs, long* num_millisecs);
+  void getSecondsAndMilliseconds(TTimeDelta ts, long* num_secs, long* num_millisecs);
 
   TTimeStamp now();
   void checkTimeoutEvents();

@@ -7,11 +7,13 @@ namespace Coroutines {
   namespace internal {
 
     // -------------------------------------------------------------
+    // Container of all real channels objectss
     std::vector<TBaseChan*> all_channels;
 
-
+    // -------------------------------------------------------------
     TChanHandle registerChannel(TBaseChan* c, eChannelType channel_type) {
       all_channels.push_back(c);
+      // Right now add it to the end...
       c->handle = TChanHandle(channel_type, (int32_t)all_channels.size() - 1);
       return c->handle;
     }
@@ -66,7 +68,7 @@ namespace Coroutines {
       if (closed())
         return false;
 
-      TTimeStamp time_for_event = next - now();
+      TTimeDelta time_for_event = next - now();
 
       // We arrive too late? The event has triggered?
       if (time_for_event < 0) {

@@ -112,7 +112,7 @@ namespace Coroutines {
           wait(&evt, 1);
         }
 
-        if (closed() && empty())
+        if (empty() && closed())
           return false;
 
         pullObjData(obj);

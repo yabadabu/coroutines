@@ -9,6 +9,7 @@ extern void runUntilAllCoroutinesEnd();
 #ifdef _WIN32
 
 #define vsnprintf     _vsnprintf_s
+#define sscanf        sscanf_s
 #define isKeyPressed(x)  ((GetAsyncKeyState(x) & 0x8000) != 0)
 #define keyBecomesPressed(x)  ((GetAsyncKeyState(x) & 0x0001) != 1)
 

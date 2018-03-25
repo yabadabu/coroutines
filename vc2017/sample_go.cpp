@@ -5,6 +5,7 @@
 #include "coroutines/choose.h"
 
 using namespace Coroutines;
+using Coroutines::wait;
 
 typedef TTypedChannel<const char*> StrChan;
 
@@ -202,7 +203,7 @@ StrChan fanInChoose(StrChan a, StrChan b) {
         ifCanPull(a, [c](const char* msg) {
           c << msg;
         }),
-        ifCanPull(b, [c](auto msg) {
+        ifCanPull(b, [c](const char* msg) {
           c << msg;
         }),
         ifTimeout(400, []() {
