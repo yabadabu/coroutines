@@ -20,6 +20,8 @@ namespace Coroutines {
       TList        waiting_for_push;
       TList        waiting_for_pull;
 
+      virtual ~TBaseChan() {}
+
       void close() {
         is_closed = true;
         // Wake up all coroutines waiting for me...
@@ -46,19 +48,10 @@ namespace Coroutines {
     template< typename T >
     class TMemChan : public TBaseChan {
 
-      typedef uint8_t u8;
-
       size_t            max_elems = 0;
       size_t            nelems_stored = 0;
       size_t            first_idx = 0;
       std::vector< T >  data;
-
-      T* addrOfItem(size_t idx) {
-        assert(!data.empty());
-        assert(data.data());
-        assert(idx < max_elems);
-        return data.data() + idx;
-      }
 
       bool full() const { return nelems_stored == max_elems; }
       bool empty() const { return nelems_stored == 0; }
@@ -98,7 +91,6 @@ namespace Coroutines {
         }
 
       }
-
 
     public:
 
