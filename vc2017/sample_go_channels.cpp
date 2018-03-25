@@ -232,6 +232,26 @@ void test_chain_of_channels() {
   });
 }
 
+// ---------------------------------
+void test_non_pods() {
+  TSimpleDemo demo("test_non_pods");
+  start([]() {
+    typedef TTypedChannel< std::string > StringChan;
+    auto c1 = StringChan::create(5);
+    c1 << std::string("john");
+    c1 << std::string("Peter" );
+
+    auto g2 = start([c1]() {
+      std::string s;
+      while (s << c1) {
+        dbg("Recv %s\n", s.c_str());
+      }
+    });
+
+    close(c1);
+    wait(g2);
+  });
+}
 
 
 void sample_new_channels() {
@@ -241,7 +261,8 @@ void sample_new_channels() {
   //test_tickers();
   //test_go_worker_pool();
   //test_new_choose();
-  test_chain_of_channels();
+  //test_chain_of_channels();
+  test_non_pods();
 }
 
 

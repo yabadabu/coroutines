@@ -41,8 +41,117 @@ namespace Coroutines {
       static TBaseChan* findChannelByHandle(TChanHandle h);
     };
 
+
+    // -------------------------------------------------------
+    template< typename T >
+    class TMemChan : public TBaseChan {
+
+      typedef uint8_t u8;
+
+      size_t            max_elems = 0;
+      size_t            nelems_stored = 0;
+      size_t            first_idx = 0;
+      std::vector< T >  data;
+
+      T* addrOfItem(size_t idx) {
+        assert(!data.empty());
+        assert(data.data());
+        assert(idx < max_elems);
+        return data.data() + idx;
+      }
+
+      bool full() const { return nelems_stored == max_elems; }
+      bool empty() const { return nelems_stored == 0; }
+
+      // -------------------------------------------------------------
+      void pushObjData(T& new_data) {
+        assert(nelems_stored < max_elems);
+        assert(!closed());
+        data[ (first_idx + nelems_stored) % max_elems ] = std::move( new_data );
+        ++nelems_stored;
+
+        // For each elem pushes, wakeup one waiter to pull
+        auto we = waiting_for_pull.detachFirst< TWatchedEvent >();
+        if (we) {
+          assert(we->channel.handle == handle);
+          assert(we->event_type == EVT_CHANNEL_CAN_PULL);
+          wakeUp(we);
+        }
+      }
+
+      // -------------------------------------------------------------
+      void pullObjData(T& new_data) {
+        assert(data.data());
+        assert(nelems_stored > 0);
+          
+        new_data = std::move(data[first_idx]);
+        
+        --nelems_stored;
+        first_idx = (first_idx + 1) % max_elems;
+
+        // For each elem pulled, wakeup one waiter to push
+        auto we = waiting_for_push.detachFirst< TWatchedEvent >();
+        if (we) {
+          assert(we->channel.handle == handle);
+          assert(we->event_type == EVT_CHANNEL_CAN_PUSH);
+          wakeUp(we);
+        }
+
+      }
+
+
+    public:
+
+      TMemChan(size_t new_max_elems) {
+        max_elems = new_max_elems;
+        data.resize(max_elems);
+      }
+
+      ~TMemChan() {
+        close();
+      }
+
+      bool pullObj(T& obj) {
+
+        assert(this);
+
+        while (empty() && !closed()) {
+          TWatchedEvent evt(handle, EVT_CHANNEL_CAN_PULL);
+          wait(&evt, 1);
+        }
+
+        if (closed() && empty())
+          return false;
+
+        pullObjData(obj);
+        return true;
+      }
+
+      bool pushObj( T& obj) {
+
+        while (full() && !closed()) {
+          TWatchedEvent evt(handle, EVT_CHANNEL_CAN_PUSH);
+          wait(&evt, 1);
+        }
+
+        if (closed())
+          return false;
+
+        pushObjData(obj);
+        return true;
+      }
+
+    };
+
     // --------------------------------------------------------------
-    TChanHandle createTypedChannel(size_t max_capacity, size_t bytes_per_elem);
+    TChanHandle registerChannel(TBaseChan* c, eChannelType channel_type);
+
+    template< typename T >
+    TChanHandle createTypedChannel(size_t max_capacity) {
+      auto c = new TMemChan<T>(max_capacity);
+      return registerChannel(c, eChannelType::CT_MEMORY);
+    }
+
   }
 
   // -------------------------------------------------------------
@@ -51,19 +160,20 @@ namespace Coroutines {
   struct TTypedChannel : public TChanHandle {
     TTypedChannel<T>(TChanHandle h) : TChanHandle(h) {};
     static TTypedChannel<T> create(size_t max_capacity = 1) {
-      return internal::createTypedChannel(max_capacity, sizeof(T));
+      return internal::createTypedChannel<T>(max_capacity);
     }
   };
 
   // -------------------------------------------------------------
   template< typename T>
-  bool push(TTypedChannel<T> cid, const T& obj) {
+  bool push(TTypedChannel<T> cid, T& obj) {
 
     auto c = internal::TBaseChan::findChannelByHandle(cid);
     if (!c || c->closed())
       return false;
 
-    return c->push(&obj, sizeof(T));
+    auto tc = (internal::TMemChan<T> *)c;
+    return tc->pushObj(obj);
   }
 
   // -------------------------------------------------------------
@@ -73,8 +183,8 @@ namespace Coroutines {
     auto c = internal::TBaseChan::findChannelByHandle(cid);
     if (!c || (c->closed() && c->empty()))
       return false;
-
-    return c->pull(&obj, sizeof(T));
+    auto tc = (internal::TMemChan<T> *)c;
+    return tc->pullObj(obj);
   }
 
   // -------------------------------------------------------------
