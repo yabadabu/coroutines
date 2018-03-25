@@ -172,8 +172,8 @@ StrChan fanInWithWait(StrChan a, StrChan b) {
   return c;
 }
 
-void test_select() {
-  TSimpleDemo demo("test_select");
+void test_select_with_wait() {
+  TSimpleDemo demo("test_select_with_wait");
 
   auto b1 = boring("john", 0);
   auto b2 = boring("peter", 0);
@@ -200,11 +200,9 @@ StrChan fanInChoose(StrChan a, StrChan b) {
       // Wait until we can 'read' from any of those channels
       int n = choose(
         ifCanPull(a, [c](const char* msg) {
-          dbg("Hi, I'm A and pulled data %s\n", msg);
           c << msg;
         }),
         ifCanPull(b, [c](auto msg) {
-          dbg("Hi, I'm B and pulled data %s\n", msg);
           c << msg;
         }),
         ifTimeout(400, []() {
@@ -213,7 +211,7 @@ StrChan fanInChoose(StrChan a, StrChan b) {
       );
 
       if (n == 2 || n == -1) {
-        dbg("Too slows..\n");
+        dbg("Too slows... (%d)\n", n);
         close(c);
         break;
       }
@@ -245,7 +243,7 @@ void sample_go() {
   //test_concurrency();
   //test_borings();
   //test_fanIn();
-  test_select();
-  //test_choose();
+  //test_select_with_wait();
+  test_choose();
 }
 

@@ -17,10 +17,12 @@ namespace Coroutines {
       void declareEvent(TWatchedEvent* we) {
         *we = TWatchedEvent(channel.asU32(), eEventType::EVT_CHANNEL_CAN_PULL);
       }
-      void run() {
-        dbg("choose.can pull fired from channel c:%08x\n", channel);
-        if (pull(channel, obj))
+      bool run() {
+        if (pull(channel, obj)) {
           cb(obj);
+          return true;
+        }
+        return false;
       }
     };
 
@@ -43,8 +45,9 @@ namespace Coroutines {
     void declareEvent(TWatchedEvent* we) {
       *we = TWatchedEvent(Time::after(delta));
     }
-    void run() {
+    bool run() {
       cb();
+      return true;
     }
   };
 
@@ -62,14 +65,14 @@ namespace Coroutines {
     }
 
     // --------------------------------------------
-    void runOption(int idx, int the_option);
+    bool runOption(int idx, int the_option);
 
     template< typename A, typename ...Args >
-    void runOption(int idx, int the_option, A& a, Args... args) {
-      if (idx == the_option)
-        a.run();
-      else
-        runOption(idx + 1, the_option, args...);
+    bool runOption(int idx, int the_option, A& a, Args... args) {
+      return 
+        (idx == the_option)
+        ? a.run()
+        : runOption(idx + 1, the_option, args...);
     }
 
   }
@@ -97,8 +100,11 @@ namespace Coroutines {
     int n = wait(wes, nwe);
 
     // Activate that option
-    if (n >= 0 && n < nwe)
-      internal::runOption(0, n, args...);
+    if (n >= 0 && n < nwe) {
+      // If could not read the channel which fired up... return -1
+      if (!internal::runOption(0, n, args...))
+        return -1;
+    }
 
     // Return the index
     return n;

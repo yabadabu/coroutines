@@ -17,8 +17,8 @@ THandle readChannel(StrChan c, int max_reads);
 void test_every_and_after() {
   TSimpleDemo demo("test_every_and_after");
 
-  auto t1 = every( 3 * Time::Second);
-  auto t2 = after( 4 * Time::Second);
+  auto t1 = every( 5 * Time::Second);
+  auto t2 = after( 2 * Time::Second);
 
   auto coT2 = start([t1, t2]() {
     pull(t2);
@@ -40,39 +40,49 @@ void test_new_choose() {
 
   auto c1 = boring("John", Time::Second);
   auto c2 = boring("Peter", Time::Second);
-  auto o1 = StrChan::create();
+  auto f = StrChan::create();
 
-  auto coA = start([c1,c2,o1]() {
+  auto coA = start([c1,c2,f]() {
     while (true) {
       int n = choose(
-        ifCanPull(c1, [c1, o1](const char* msg) {
-          dbg("Hi, I'm A and pulled data %s\n", msg);
-          push(o1, msg);
+        ifCanPull(c1, [f](const char* msg) {
+          f << msg;
         }),
-        ifCanPull(c2, [c2, o1](auto msg) {
-          dbg("Hi, I'm B and pulled data %s\n", msg);
-          push(o1, msg);
+        ifCanPull(c2, [f](auto msg) {
+          push(f, msg);
+        }),
+        ifTimeout(1500, []() {
+          dbg("Timeout waiting for a or b\n");
         })
-        //  ,
-        //ifTimeout(400, []() {
-        //  dbg("Timeout waiting for a or b\n");
-        //})
-        );
-      dbg("Choose returned %d\n", n);
+      );
+      if (n == 2) {
+        dbg("Timeout triggered in choose condition\n");
+        break;
+      }
+      else if (n == -1) {
+        // Happens when c1 is closed from another co...
+        dbg("Exit the choose condition with an error\n");
+        break;
+      }
     }
+    close(f);
   });
 
-  auto co2 = readChannel(o1, 5);
+  auto co2 = readChannel(f, 5);
   start([&]() {
+    // wait co2 means wait until readChannel reads 5 entries
+    // or his channel is closed
     wait(co2);
+    // Closing boring producerchannels 
     close(c1);
     close(c2);
-    close(o1);
+    // Ensure the fanin is closed
+    close(f);
   });
 }
 
 // --------------------------------------------------
-// go will push, the recv, push, recv, push recv, close, done
+// go will push, then recv, push, recv, push recv, close, done
 // here will: push push push, close, recv, recv, recv, done
 void test_go_closing_channels() {
   TSimpleDemo demo("test_go_closing_channels");
@@ -108,6 +118,8 @@ void test_go_closing_channels() {
 
 
 // --------------------------------------------------
+// Confirm we can read from a closed channel while 
+// there is still data inside
 void test_read_closed_channels() {
   TSimpleDemo demo("test_read_closed_channels");
   start([]() {
@@ -183,8 +195,8 @@ void sample_new_channels() {
   //test_every_and_after();
   //test_read_closed_channels();
   //test_tickers();
-  test_go_worker_pool();
-  //test_new_choose();
+  //test_go_worker_pool();
+  test_new_choose();
 }
 
 

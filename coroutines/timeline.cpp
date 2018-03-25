@@ -88,8 +88,9 @@ namespace Coroutines {
     void fillChoose(TWatchedEvent* we) { 
     }
     
-    void runOption(int idx, int the_option) {
+    bool runOption(int idx, int the_option) {
       assert(false && "Something weird is going on...\n");
+      return false;
     }
   }
 
