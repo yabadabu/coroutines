@@ -169,6 +169,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\coroutines\channel.h" />
+    <ClInclude Include="..\coroutines\channel_handle.h" />
     <ClInclude Include="..\coroutines\choose.h" />
     <ClInclude Include="..\coroutines\coroutines.h" />
     <ClInclude Include="..\coroutines\events.h" />

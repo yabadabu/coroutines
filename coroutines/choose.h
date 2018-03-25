@@ -15,7 +15,7 @@ namespace Coroutines {
         , cb(new_cb)
       { }
       void declareEvent(TWatchedEvent* we) {
-        *we = TWatchedEvent(channel.asU32(), eEventType::EVT_CHANNEL_CAN_PULL);
+        *we = TWatchedEvent(channel, eEventType::EVT_CHANNEL_CAN_PULL);
       }
       bool run() {
         if (pull(channel, obj)) {

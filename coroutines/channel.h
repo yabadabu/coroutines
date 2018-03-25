@@ -6,38 +6,6 @@
 
 namespace Coroutines {
 
-  // -------------------------------------------------------
-  // -------------------------------------------------------
-  // -------------------------------------------------------
-  enum eChannelType { CT_INVALID = 0, CT_TIMER = 1, CT_MEMORY, CT_IO };
-  struct TChanHandle {
-    eChannelType class_id : 4;
-    uint32_t     index : 12;
-    uint32_t     age : 16;
-
-    uint32_t asU32() const { return *((uint32_t*)this); }
-    void fromU32(uint32_t new_u32) { *((uint32_t*)this) = new_u32; }
-
-    TChanHandle() {
-      class_id = CT_INVALID;
-      index = age = 0;
-    }
-
-    explicit TChanHandle(uint32_t new_u32) {
-      fromU32(new_u32);
-    }
-
-    TChanHandle(eChannelType channel_type, int32_t new_index) {
-      class_id = channel_type;
-      index = new_index;
-      age = 1;
-    }
-    bool operator==(const TChanHandle h) const {
-      return h.asU32() == asU32();
-    }
-
-  };
-
   // -------------------------------------------------------------
   namespace internal {
 

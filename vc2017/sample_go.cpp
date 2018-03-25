@@ -150,8 +150,8 @@ StrChan fanInWithWait(StrChan a, StrChan b) {
       // or 400ms without activity are triggered
       const char* msg;
       TWatchedEvent we[3] = { 
-        TWatchedEvent(a.asU32(), eEventType::EVT_CHANNEL_CAN_PULL ), 
-        TWatchedEvent(b.asU32(), eEventType::EVT_CHANNEL_CAN_PULL ),
+        TWatchedEvent(a, eEventType::EVT_CHANNEL_CAN_PULL ), 
+        TWatchedEvent(b, eEventType::EVT_CHANNEL_CAN_PULL ),
         Time::after( 400 * Time::MilliSecond )
       };
       int n = wait(we, 3);

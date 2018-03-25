@@ -40,18 +40,19 @@ namespace Coroutines {
       } user_event;
 
       struct {
-        uint32_t   channel;
-      } nchannel;
+        TChanHandle handle;
+      } channel;
 
     };
 
     // Specialized ctors
     TWatchedEvent() : event_type(EVT_INVALID) { }
 
-    // Wait until the we can push/pull an item into/from that new_channel
-    TWatchedEvent(uint32_t new_channel, eEventType evt)
+    // Wait until the we can push/pull an item into/from that channel
+    TWatchedEvent(TChanHandle new_channel, eEventType evt)
     {
-      nchannel.channel = new_channel;
+      assert( evt == EVT_CHANNEL_CAN_PUSH || evt == EVT_CHANNEL_CAN_PULL );
+      channel.handle = new_channel;
       event_type = evt;
       owner = current();
     }

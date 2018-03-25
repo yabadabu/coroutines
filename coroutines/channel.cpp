@@ -50,7 +50,7 @@ namespace Coroutines {
         assert(this);
 
         while (empty() && !closed()) {
-          TWatchedEvent evt(handle.asU32(), EVT_CHANNEL_CAN_PULL);
+          TWatchedEvent evt(handle, EVT_CHANNEL_CAN_PULL);
           wait(&evt, 1);
         }
 
@@ -68,7 +68,7 @@ namespace Coroutines {
         assert(nbytes == bytes_per_elem);
 
         while (full() && !closed()) {
-          TWatchedEvent evt(handle.asU32(), EVT_CHANNEL_CAN_PUSH);
+          TWatchedEvent evt(handle, EVT_CHANNEL_CAN_PUSH);
           wait(&evt, 1);
         }
 
@@ -95,7 +95,7 @@ namespace Coroutines {
       // For each elem pushes, wakeup one waiter to pull
       auto we = waiting_for_pull.detachFirst< TWatchedEvent >();
       if (we) {
-        assert(we->nchannel.channel == handle.asU32());
+        assert(we->channel.handle == handle);
         assert(we->event_type == EVT_CHANNEL_CAN_PULL);
         wakeUp(we);
       }
@@ -115,7 +115,7 @@ namespace Coroutines {
       // For each elem pulled, wakeup one waiter to push
       auto we = waiting_for_push.detachFirst< TWatchedEvent >();
       if (we) {
-        assert(we->nchannel.channel == handle.asU32());
+        assert(we->channel.handle == handle);
         assert(we->event_type == EVT_CHANNEL_CAN_PUSH);
         wakeUp(we);
       }
@@ -197,7 +197,7 @@ namespace Coroutines {
       // We can also exit from the wait IF this channel 
       // becomes 'closed' while we are waiting.
       // The 'close' will trigger this event
-      wes[1] = TWatchedEvent(handle.asU32(), eEventType::EVT_CHANNEL_CAN_PULL);
+      wes[1] = TWatchedEvent(handle, eEventType::EVT_CHANNEL_CAN_PULL);
       int idx = wait(wes, 2);
       if (idx == -1)
         return false;

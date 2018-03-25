@@ -68,5 +68,8 @@
     <ClInclude Include="..\coroutines\choose.h">
       <Filter>coroutines</Filter>
     </ClInclude>
+    <ClInclude Include="..\coroutines\channel_handle.h">
+      <Filter>coroutines</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

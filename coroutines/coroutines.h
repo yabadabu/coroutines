@@ -44,6 +44,7 @@ namespace Coroutines {
 
 }
 
+#include "channel_handle.h"
 #include "list.h"
 #include "timeline.h"
 #include "io_events.h"
