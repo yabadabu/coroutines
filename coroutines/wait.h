@@ -67,8 +67,8 @@ namespace Coroutines {
 
     TWatchedEvent(TTimeDelta timeout) {
       event_type = EVT_TIMEOUT;
-      time.time_programmed = now();
-      time.time_to_trigger = now() + timeout;
+      time.time_programmed = Time::now();
+      time.time_to_trigger = Time::now() + timeout;
       owner = current();
     }
 

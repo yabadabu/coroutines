@@ -81,11 +81,11 @@ namespace Coroutines {
         return;
       }
       // We could improve accuracy...
-      next = now() + interval;
+      next = Time::now() + interval;
     }
   public:
     TTimeChan(TTimeDelta amount_of_time_between_events, bool new_is_periodic)
-      : next(now() + amount_of_time_between_events)
+      : next(Time::now() + amount_of_time_between_events)
       , interval(amount_of_time_between_events)
       , is_periodic(new_is_periodic)
     { }
@@ -95,7 +95,7 @@ namespace Coroutines {
       if (closed())
         return false;
 
-      TTimeDelta time_for_event = next - now();
+      TTimeDelta time_for_event = next - Time::now();
 
       // We arrive too late? The event has triggered?
       if (time_for_event < 0) {
@@ -116,7 +116,7 @@ namespace Coroutines {
 
       if (obj) {
         assert(nbytes == sizeof(TTimeStamp));
-        *(TTimeStamp*)obj = now();
+        *(TTimeStamp*)obj = Time::now();
       }
 
       prepareNext();

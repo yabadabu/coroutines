@@ -16,7 +16,7 @@ void dbg(const char *fmt, ...) {
   if (n < 0)
     buf[1023] = 0x00;
   va_end(ap);
-  TTimeDelta time_since_boot = now() - boot_time;
+  TTimeDelta time_since_boot = Time::now() - boot_time;
   long nsecs, nmsecs;
   getSecondsAndMilliseconds(time_since_boot, &nsecs, &nmsecs);
   printf("[%04d.%03d:%05x] %02d.%02d %s", (int)nsecs, (int)nmsecs, (int)getNumLoops(), current().id, current().age, buf);
@@ -54,7 +54,7 @@ int main(int argc, char** argv) {
   int iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
 #endif
 
-  boot_time = now();
+  boot_time = Time::now();
   //sample_wait();
   //sample_channels();
   //sample_create();

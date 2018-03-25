@@ -6,6 +6,7 @@
 
 using namespace Coroutines;
 using Coroutines::wait;
+using Time::now;
 
 namespace HTTP {
 

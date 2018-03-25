@@ -12,23 +12,10 @@ namespace Coroutines {
 
   struct TWatchedEvent;
 
-  void getSecondsAndMilliseconds(TTimeDelta ts, long* num_secs, long* num_millisecs);
-
-  TTimeStamp now();
-  void checkTimeoutEvents();
-  void registerTimeoutEvent(TWatchedEvent* we);
-  void unregisterTimeoutEvent(TWatchedEvent* we);
-
-  struct TScopedTime {
-    TTimeStamp      start;
-    TScopedTime() : start(now()) {
-    }
-    TTimeDelta elapsed() const { return now() - start; }
-  };
-
   // ---------------------------------------------------------
   namespace Time {
 
+    TTimeStamp now();
     void sleep(TTimeDelta ms_to_sleep);
     TWatchedEvent after(TTimeDelta ms_to_sleep);
     
@@ -38,6 +25,19 @@ namespace Coroutines {
     static const TTimeDelta Hour = 60 * Minute;
 
   }
+
+  void getSecondsAndMilliseconds(TTimeDelta ts, long* num_secs, long* num_millisecs);
+
+  void checkTimeoutEvents();
+  void registerTimeoutEvent(TWatchedEvent* we);
+  void unregisterTimeoutEvent(TWatchedEvent* we);
+
+  struct TScopedTime {
+    TTimeStamp      start;
+    TScopedTime() : start(Time::now()) {
+    }
+    TTimeDelta elapsed() const { return Time::now() - start; }
+  };
 
 
 }

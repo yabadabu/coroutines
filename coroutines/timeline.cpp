@@ -44,14 +44,14 @@ namespace Coroutines {
   }
 
   // Using millisecond resolution
-  TTimeStamp now() {
+  TTimeStamp Time::now() {
     struct timeval tv;
     gettimeofday(&tv, NULL);
     return tv.tv_sec * 1000 + (tv.tv_usec / 1000);
   }
 
   void checkTimeoutEvents() {
-    current_timestamp = now();
+    current_timestamp = Time::now();
     auto we = static_cast<TWatchedEvent*>( waiting_for_timeouts.first );
     while (we) {
       assert(we->event_type == EVT_TIMEOUT);
