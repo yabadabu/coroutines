@@ -190,13 +190,58 @@ void test_go_worker_pool() {
   });
 }
 
+// ---------------------------------
+void test_chain_of_channels() {
+  TSimpleDemo demo("test_chain_of_channels");
+  start([]() {
+ 
+    int n = 1000;
+    
+    // Create N channels
+    std::vector< IntChan > channels;
+    for (int i = 0; i < n; ++i)
+      channels.push_back(IntChan::create());
+
+    // Create N-1 coroutines
+    for (int i = 0; i < n-1; ++i) {
+      auto cprev = channels[i];
+      auto cnext = channels[i + 1];
+      auto co = start([cprev, cnext]() {
+        while (true) {
+          int id;
+          // If there is nothing to read, exit
+          if (!(id << cprev))
+            break;
+          ++id;
+          cnext << id;
+        }
+        close(cnext);
+      });
+    }
+    dbg("All setup done. Pushing 1 to the first channel\n");
+
+    // Send a signal
+    channels[0] << 1;
+    // Read back the result
+    int result;
+    result << channels.back();
+    dbg("We sent 1, and received %d\n", result);
+    assert(result == n);
+    // Close all channels in cascade
+    close(channels[0]);
+  });
+}
+
+
+
 void sample_new_channels() {
   //test_go_closing_channels();
   //test_every_and_after();
   //test_read_closed_channels();
   //test_tickers();
   //test_go_worker_pool();
-  test_new_choose();
+  //test_new_choose();
+  test_chain_of_channels();
 }
 
 
