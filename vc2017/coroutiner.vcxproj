@@ -154,6 +154,7 @@
     <ClCompile Include="..\coroutines\coroutines.cpp" />
     <ClCompile Include="..\coroutines\events.cpp" />
     <ClCompile Include="..\coroutines\io_channel.cpp" />
+    <ClCompile Include="..\coroutines\io_file.cpp" />
     <ClCompile Include="..\coroutines\timeline.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="sample_channels.cpp" />
@@ -161,6 +162,7 @@
     <ClCompile Include="sample_go.cpp" />
     <ClCompile Include="sample_net.cpp" />
     <ClCompile Include="sample_go_channels.cpp" />
+    <ClCompile Include="sample_read_compress_write.cpp" />
     <ClCompile Include="sample_sync.cpp" />
     <ClCompile Include="sample_wait.cpp" />
   </ItemGroup>
@@ -176,6 +178,7 @@
     <ClInclude Include="..\coroutines\fcontext\fcontext.h" />
     <ClInclude Include="..\coroutines\io_channel.h" />
     <ClInclude Include="..\coroutines\io_events.h" />
+    <ClInclude Include="..\coroutines\io_file.h" />
     <ClInclude Include="..\coroutines\list.h" />
     <ClInclude Include="..\coroutines\timeline.h" />
     <ClInclude Include="..\coroutines\wait.h" />

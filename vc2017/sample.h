@@ -1,5 +1,8 @@
 #pragma once
 
+#include <cstdarg>
+#include <cstdio>
+#include <vector>
 #include "coroutines/coroutines.h"
 
 extern void dbg(const char *fmt, ...);
@@ -20,6 +23,8 @@ extern void runUntilAllCoroutinesEnd();
 
 #endif
 
+// -------------------------------------------------
+// In the dtor will wait untill all coroutines have finished
 // -------------------------------------------------
 struct TSimpleDemo {
   const char* title;

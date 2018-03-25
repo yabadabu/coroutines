@@ -24,6 +24,10 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="sample_go.cpp" />
     <ClCompile Include="sample_go_channels.cpp" />
+    <ClCompile Include="sample_read_compress_write.cpp" />
+    <ClCompile Include="..\coroutines\io_file.cpp">
+      <Filter>coroutines</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="coroutines">
@@ -69,6 +73,9 @@
       <Filter>coroutines</Filter>
     </ClInclude>
     <ClInclude Include="..\coroutines\channel_handle.h">
+      <Filter>coroutines</Filter>
+    </ClInclude>
+    <ClInclude Include="..\coroutines\io_file.h">
       <Filter>coroutines</Filter>
     </ClInclude>
   </ItemGroup>

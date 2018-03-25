@@ -45,6 +45,7 @@ extern void sample_wait();
 extern void sample_sync();
 extern void sample_go();
 extern void sample_new_channels();
+extern void sample_read_compress_write();
 
 // -----------------------------------------------------------
 int main(int argc, char** argv) {
@@ -61,7 +62,8 @@ int main(int argc, char** argv) {
   //sample_net();
   //sample_sync();
   //sample_go();
-  sample_new_channels();
+  //sample_new_channels();
+  sample_read_compress_write();
   return 0;
 }
 
