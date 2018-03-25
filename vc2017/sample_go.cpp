@@ -13,6 +13,7 @@ void test_concurrency() {
 
   auto sc = StrChan::create();
 
+  // Writes a label and waits 1 sec
   auto co1 = start(std::bind([sc]( const char* label ){
     while (true) {
       sc << label;
@@ -20,6 +21,7 @@ void test_concurrency() {
     }
   }, "john"));
 
+  // Reads from channel 5 times and then exists
   auto co2 = start([sc]() {
     for (int i = 0; i < 5; ++i) {
       const char* msg;
@@ -37,6 +39,8 @@ void test_concurrency() {
 }
 
 // ---------------------------------------------------------
+// Create a coroutine which emits label at random intervals of 1 sec
+// returns the channel created
 StrChan boring(const char* label, TTimeDelta min_time = 0) {
   auto sc = StrChan::create();
   start([sc, label, min_time]() {
@@ -45,10 +49,12 @@ StrChan boring(const char* label, TTimeDelta min_time = 0) {
         break;
       Time::sleep(min_time + Time::MilliSecond * ((rand() % 1000)));
     }
+    dbg("Boring %s exits\n", label);
   });
   return sc;
 }
 
+// Testing sequenciacion
 void test_borings() {
   TSimpleDemo demo("test_borings");
 
@@ -75,6 +81,7 @@ void test_borings() {
 }
 
 // -------------------------------------------------
+// Outputs to console the first N lines read from the given channel
 THandle readChannel(StrChan c, int n) {
   return start([c, n]() {
     for (int i = 0; i < n; ++i) {
@@ -87,16 +94,20 @@ THandle readChannel(StrChan c, int n) {
   });
 }
 
-
+// -------------------------------------------------
+// Merges contents of channels a & b into a single channel c
+// -------------------------------------------------
 StrChan fanIn(StrChan a, StrChan b) {
   auto c = StrChan::create();
 
+  // Reads from a and writes to c, using <<
   start([c, a]() {
     const char* msg;
     while (msg << a)
       c << msg;
   });
 
+  // Reads from b and writes to c, using pull/push
   start([c, b]() {
     while (true) {
       const char* msg;
@@ -108,7 +119,7 @@ StrChan fanIn(StrChan a, StrChan b) {
   return c;
 }
 
-
+// -------------------------------------------------
 void test_fanIn() {
   TSimpleDemo demo("test_fanIn");
 
@@ -128,18 +139,20 @@ void test_fanIn() {
 }
 
 // -------------------------------------------
-StrChan fanInSelect(StrChan a, StrChan b) {
+// Fan In implemented using wait
+StrChan fanInWithWait(StrChan a, StrChan b) {
   auto c = StrChan::create();
 
   start([c, a, b]() {
     while (true) {
 
       // Wait until we can 'read' from any of those channels
+      // or 400ms without activity are triggered
       const char* msg;
       TWatchedEvent we[3] = { 
         TWatchedEvent(a.asU32(), eEventType::EVT_CHANNEL_CAN_PULL ), 
         TWatchedEvent(b.asU32(), eEventType::EVT_CHANNEL_CAN_PULL ),
-        Time::after( 400 )
+        Time::after( 400 * Time::MilliSecond )
       };
       int n = wait(we, 3);
       if (n == 2 || n == -1) {
@@ -159,9 +172,26 @@ StrChan fanInSelect(StrChan a, StrChan b) {
   return c;
 }
 
+void test_select() {
+  TSimpleDemo demo("test_select");
+
+  auto b1 = boring("john", 0);
+  auto b2 = boring("peter", 0);
+  
+  auto b = fanInWithWait(b1, b2);
+  auto co2 = readChannel(b, 10);
+
+  while (isHandle(co2))
+    executeActives();
+
+  close(b);
+  close(b1);
+  close(b2);
+}
+
 // --------------------------------------------------------------
 // User code
-StrChan fanInSelect2(StrChan a, StrChan b) {
+StrChan fanInChoose(StrChan a, StrChan b) {
   auto c = StrChan::create();
 
   start([c, a, b]() {
@@ -194,12 +224,12 @@ StrChan fanInSelect2(StrChan a, StrChan b) {
   return c;
 }
 
-void test_select() {
-  TSimpleDemo demo("test_select");
+void test_choose() {
+  TSimpleDemo demo("test_choose");
 
   auto b1 = boring("john");
   auto b2 = boring("peter");
-  auto b = fanInSelect2(b1, b2);
+  auto b = fanInChoose(b1, b2);
   auto co2 = readChannel(b, 10);
 
   while (isHandle(co2))
@@ -212,9 +242,10 @@ void test_select() {
 
 // ----------------------------------------------------------
 void sample_go() {
-//  test_concurrency();
-//  test_borings();
-//  test_fanIn();
+  //test_concurrency();
+  //test_borings();
+  //test_fanIn();
   test_select();
+  //test_choose();
 }
 

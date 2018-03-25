@@ -474,7 +474,8 @@ namespace Coroutines {
     auto co = internal::byHandle(current());
     assert(co);
 
-    if (int idx = isAnyReadyWithoutBlocking(watched_events, nwatched_events) >= 0)
+    int idx = isAnyReadyWithoutBlocking(watched_events, nwatched_events);
+    if ( idx >= 0)
       return idx;
 
     internal::registerToEvents(co, watched_events, nwatched_events, timeout);

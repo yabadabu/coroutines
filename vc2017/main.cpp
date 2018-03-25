@@ -60,7 +60,7 @@ int main(int argc, char** argv) {
   //sample_create();
   //sample_net();
   //sample_sync();
-  //sample_go();
+  sample_go();
   //sample_new_channels();
   return 0;
 }
