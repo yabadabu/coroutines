@@ -7,14 +7,15 @@ This is a C++ wrapper to run coroutines using fcontext as a switching platform.
   mkdir build  
   cmake -G "Visual Studio 15 2017 Win64" ..
 
+- Increase timer resolution to usecs
 - Add io channels as regular channels to use in the choose
 - Add more examples
 - Remove old entries from 'VDescriptors' at internal::TIOEvents once done
 - Wait for Barrier.
-- Wait for async file reads. Win done.
 - Test poll, epoll
 - Add HTTP download
-/ Close channel to ChanHandle
++ Close channel to ChanHandle
++ Wait for async file reads.
 + Remove old channels
 + Move TChannel/CIOHandle to handle-based resource or simple identifiers
 + Allow user to create his own events, which when triggered will wake up
