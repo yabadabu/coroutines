@@ -2,6 +2,11 @@ This is a C++ wrapper to run coroutines using fcontext as a switching platform.
 
 ** TODO
 
+- Use: 
+  
+  mkdir build  
+  cmake -G "Visual Studio 15 2017 Win64" ..
+
 - Add io channels as regular channels to use in the choose
 - Add more examples
 - Remove old entries from 'VDescriptors' at internal::TIOEvents once done
