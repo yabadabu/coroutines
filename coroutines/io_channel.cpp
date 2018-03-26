@@ -121,8 +121,8 @@ namespace Coroutines {
     while (isValid()) {
       struct sockaddr_storage sa;
       socklen_t sa_sz = sizeof(sa);
-      int rc = sys_accept(fd, &sa, &sa_sz);
-      if (rc < 0) {
+      auto rc = sys_accept(fd, &sa, &sa_sz);
+      if (rc == invalid_socket_id) {
         int sys_err = sys_errno;
         if (sys_err == SYS_ERR_WOULD_BLOCK) {
           dbg("FD %d goes to sleep waiting for a connection\n", fd);
