@@ -18,7 +18,7 @@ namespace Coroutines {
     CIOChannel accept();
 
     // Will block until the connection can be stablished
-    bool       connect(const char* addr, int port, int timeout_sec);
+    bool       connect(const char* addr, int port );
 
     // Will block until all bytes have been sent
     // Returns true if all bytes could be send, or false if there was an error

@@ -144,7 +144,7 @@ namespace Coroutines {
   }
 
   // ---------------------------------------------------------------------------
-  bool CIOChannel::connect(const char* addr, int port, int timeout_sec) {
+  bool CIOChannel::connect(const char* addr, int port ) {
 
     assert(addr);
     assert(port > 0 && port < 65536);

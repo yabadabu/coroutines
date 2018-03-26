@@ -70,7 +70,7 @@ static void runClient(int max_id) {
   //wait(nullptr, 0, 1000);
 
   CIOChannel client;
-  if (!client.connect(addr, port, 1000)) {
+  if (!client.connect(addr, port )) {
     dbg("Client: Can't connect to server %s.\n", addr);
     return;
   }

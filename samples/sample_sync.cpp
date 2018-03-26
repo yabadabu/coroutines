@@ -146,7 +146,7 @@ bool download(TDownloadTask* dt) {
 
   // Connect
   CIOChannel conn;
-  if (!conn.connect(r.host.c_str(), r.port, 1000)) {
+  if (!conn.connect(r.host.c_str(), r.port )) {
     dbg("Failed to connect to uri %s\n", dt->uri);
     return false;
   }
