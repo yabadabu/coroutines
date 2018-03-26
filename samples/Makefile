@@ -6,9 +6,11 @@ CFLAGS = -c -std=c++11 -I..
 LNKFLAGS = -lstdc++ -lfcontext -lm
 CXX = clang
 
+CFLAGS += -O2
+
 UNAME := $(shell uname -s)
 ifeq ($(UNAME),Linux)
-	LNKFLAGS += -L../libs/linux
+	LNKFLAGS += -L../libs/linux -lrt
 endif
 ifeq ($(UNAME),Darwin)
 	LNKFLAGS += -L../libs/osx

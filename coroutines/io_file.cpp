@@ -41,6 +41,7 @@ namespace Coroutines {
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <aio.h>
 
 namespace Coroutines {
 
@@ -48,22 +49,10 @@ namespace Coroutines {
 
     namespace internal {
 
-      static bool setNonBlocking(int handle) {
-        int flags = fcntl(handle, F_GETFL, 0);
-        if (flags == -1)
-          flags = 0;
-        auto rc = fcntl(handle, F_SETFL, flags | O_NONBLOCK);
-        if (rc != 0)
-          dbg("Failed to set socket %d as non-blocking\n", handle);
-        return rc == 0;
-      }
-
       TFile::TFile(const char* filename, eMode new_mode ) {
         mode = new_mode;
         int flags = ( new_mode == FOR_READING ) ? O_RDONLY : ( O_WRONLY | O_CREAT );
-        handle = ::open( filename, flags );
-        if( isValid() )
-          setNonBlocking(handle);
+        handle = ::open( filename, flags, S_IRUSR|S_IWUSR );
       }
 
       TFile::~TFile() {
@@ -83,48 +72,54 @@ namespace Coroutines {
 
       bool TFile::asyncRead( void* data, size_t nbytes ) {
         assert( mode == FOR_READING && isValid() );
-        size_t total_bytes = 0;
-        while( isValid() ) {
-          auto rc = ::read( handle, (char*) data + total_bytes, nbytes - total_bytes );
-          if( rc == -1 ) {
-            if( errno == EAGAIN ) {
-              //dbg( "read returned EAGAIN\n");
-              TWatchedEvent we(handle, EVT_SOCKET_IO_CAN_READ);
-              wait(&we, 1);
-            }
-            else 
-              break;
-          } else {
-            total_bytes += rc;
-            //dbg( "read %ld => %ld/%ld\n", rc, total_bytes, nbytes);
-            if( total_bytes == nbytes )
-              break;
-          }
-        }
-        return total_bytes == nbytes;
+
+				aiocb cb;
+				memset( &cb, 0x00, sizeof( cb ));
+
+				cb.aio_fildes = handle;
+				cb.aio_offset = 0;
+				cb.aio_buf = data;
+				cb.aio_nbytes = nbytes;
+
+				int rc = aio_read( &cb );
+				if( rc != 0 ) 
+					return false;
+
+				Coroutines::wait([&cb](){
+					int rc = aio_error( &cb );
+					return rc == EINPROGRESS;
+				});
+
+        return true;
       }
 
       bool TFile::asyncWrite( const void* data, size_t nbytes ) {
         assert( mode == FOR_WRITING && isValid() );
-        size_t total_bytes = 0;
-        while( isValid() ) {
-          auto rc = ::write( handle, (char*) data + total_bytes, nbytes - total_bytes );
-          if( rc == -1 ) {
-            if( errno == EAGAIN ) {
-              //dbg( "write returned EAGAIN\n");
-              TWatchedEvent we(handle, EVT_SOCKET_IO_CAN_WRITE);
-              wait(&we, 1);
-            }
-            else 
-              break;
-          } else {
-            total_bytes += rc;
-            //dbg( "write %ld => %ld/%ld\n", rc, total_bytes, nbytes);
-            if( total_bytes == nbytes )
-              break;
-          }
-        }
-        return total_bytes == nbytes;
+				TScopedTime st;
+
+				aiocb cb;
+				memset( &cb, 0x00, sizeof( cb ));
+
+				cb.aio_fildes = handle;
+				cb.aio_offset = 0;
+				cb.aio_buf = (void*)data;
+				cb.aio_nbytes = nbytes;
+
+				int rc = aio_write( &cb );
+				if( rc != 0 ) {
+					dbg( "aio_write failed %d\n", rc );
+					return false;
+				}
+
+				Coroutines::wait([&cb](){
+					TScopedTime st;
+					int rc = aio_error( &cb );
+					dbg("asyncWrite.aio_error = %d took %d (EINPROGRESS=%d)\n", rc, st.elapsed(), EINPROGRESS );
+					return rc == EINPROGRESS;
+				});
+				rc = aio_return( &cb );
+				dbg("asyncWrite.full = %d took %d\n", rc, st.elapsed() );
+        return true;
       }
 
     }
