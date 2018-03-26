@@ -1,6 +1,24 @@
 #include "coroutines.h"
 #include "io_file.h"
 
+#ifndef WIN32
+
+namespace Coroutines {
+
+  namespace IO {
+
+    bool loadFile(const char* filename, IO::TBuffer& buf) {
+      return false;
+    }
+ 
+    bool saveFile(const char* filename, const IO::TBuffer& buf) {
+      return false;
+    }
+  }
+}
+
+#else 
+
 using namespace Coroutines;
 using Coroutines::wait;
 
@@ -149,3 +167,5 @@ namespace Coroutines {
   }
 
 }
+
+#endif

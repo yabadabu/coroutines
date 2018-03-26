@@ -41,7 +41,7 @@ void test_read_compress_write() {
       buffers << buf;
     }
 
-    dbg("All files done\n");
+    dbg("All files loaded\n");
     close(buffers);
   });
 
