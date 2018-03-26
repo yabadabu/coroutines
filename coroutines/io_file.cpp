@@ -41,6 +41,7 @@ namespace Coroutines {
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <sys/mman.h>
 
 namespace Coroutines {
 
@@ -48,22 +49,10 @@ namespace Coroutines {
 
     namespace internal {
 
-      static bool setNonBlocking(int handle) {
-        int flags = fcntl(handle, F_GETFL, 0);
-        if (flags == -1)
-          flags = 0;
-        auto rc = fcntl(handle, F_SETFL, flags | O_NONBLOCK);
-        if (rc != 0)
-          dbg("Failed to set socket %d as non-blocking\n", handle);
-        return rc == 0;
-      }
-
       TFile::TFile(const char* filename, eMode new_mode ) {
         mode = new_mode;
-        int flags = ( new_mode == FOR_READING ) ? O_RDONLY : ( O_WRONLY | O_CREAT );
+        int flags = ( new_mode == FOR_READING ) ? O_RDONLY : ( O_RDWR | O_CREAT | O_TRUNC );
         handle = ::open( filename, flags );
-        if( isValid() )
-          setNonBlocking(handle);
       }
 
       TFile::~TFile() {
@@ -83,48 +72,67 @@ namespace Coroutines {
 
       bool TFile::asyncRead( void* data, size_t nbytes ) {
         assert( mode == FOR_READING && isValid() );
-        size_t total_bytes = 0;
-        while( isValid() ) {
-          auto rc = ::read( handle, (char*) data + total_bytes, nbytes - total_bytes );
-          if( rc == -1 ) {
-            if( errno == EAGAIN ) {
-              //dbg( "read returned EAGAIN\n");
-              TWatchedEvent we(handle, EVT_SOCKET_IO_CAN_READ);
-              wait(&we, 1);
-            }
-            else 
-              break;
-          } else {
-            total_bytes += rc;
-            //dbg( "read %ld => %ld/%ld\n", rc, total_bytes, nbytes);
-            if( total_bytes == nbytes )
-              break;
+        auto mapped = mmap( 0, nbytes, PROT_READ, MAP_PRIVATE, handle, 0 );
+        if( mapped == MAP_FAILED )
+          return false;
+
+        const bool use_yield = true;
+        if( use_yield ) {
+          size_t bytes_processed = 0;
+          size_t page_size = getpagesize();  // 4Kb
+          size_t chunk = page_size * 16;     // 256 Kb
+          auto idata = (const char*) mapped;
+          auto odata = (char*) data;
+          while( bytes_processed != nbytes ) {
+            if( bytes_processed + chunk > nbytes )
+              chunk = nbytes - bytes_processed;
+            memcpy( odata, idata, chunk );
+            idata += chunk;
+            odata += chunk;
+            bytes_processed += chunk;
+            if( bytes_processed != nbytes )
+              yield();
           }
+        } else {
+          memcpy( data, mapped, nbytes );
         }
-        return total_bytes == nbytes;
+
+        munmap( mapped, nbytes );
+        return true;
       }
 
       bool TFile::asyncWrite( const void* data, size_t nbytes ) {
         assert( mode == FOR_WRITING && isValid() );
-        size_t total_bytes = 0;
-        while( isValid() ) {
-          auto rc = ::write( handle, (char*) data + total_bytes, nbytes - total_bytes );
-          if( rc == -1 ) {
-            if( errno == EAGAIN ) {
-              //dbg( "write returned EAGAIN\n");
-              TWatchedEvent we(handle, EVT_SOCKET_IO_CAN_WRITE);
-              wait(&we, 1);
-            }
-            else 
-              break;
-          } else {
-            total_bytes += rc;
-            //dbg( "write %ld => %ld/%ld\n", rc, total_bytes, nbytes);
-            if( total_bytes == nbytes )
-              break;
+        lseek( handle, nbytes-1, SEEK_SET );
+        if( write( handle, "\0", 1 ) != 1 )
+          return false;
+        auto mapped = mmap( 0, nbytes, PROT_WRITE, MAP_SHARED, handle, 0 );
+        if( mapped == MAP_FAILED )
+          return false;
+
+        const bool use_yield = true;
+        if( use_yield ) {
+          size_t bytes_processed = 0;
+          size_t page_size = getpagesize();  // 4Kb
+          size_t chunk = page_size * 64;     // 256 Kb
+          auto idata = (const char*) data;
+          auto odata = (char*) mapped;
+          while( bytes_processed != nbytes ) {
+            if( bytes_processed + chunk > nbytes )
+              chunk = nbytes - bytes_processed;
+            memcpy( odata, idata, chunk );
+            msync( odata, chunk, MS_SYNC );
+            idata += chunk;
+            odata += chunk;
+            bytes_processed += chunk;
+            yield();
           }
+        } else {
+          memcpy( mapped, data, nbytes );
+          msync( mapped, nbytes, MS_ASYNC );
         }
-        return total_bytes == nbytes;
+        munmap( mapped, nbytes );
+        return true;
       }
 
     }

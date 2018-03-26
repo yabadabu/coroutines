@@ -15,10 +15,10 @@ void test_read_compress_write() {
 
   // This will queue some work to do
   auto c1 = start([files_to_load]() {
-    files_to_load << "test";
-    files_to_load << "sample_wait.o";
-    files_to_load << "BezelSources.7z";
-    files_to_load << "microprofile.zip";
+    files_to_load << "bigfile_00.dat";
+    files_to_load << "bigfile_01.dat";
+    files_to_load << "bigfile_02.dat";
+    files_to_load << "bigfile_03.dat";
     close(files_to_load);
   });
 
