@@ -15,7 +15,7 @@ static void runServer() {
 
   // Wait some time before starting the server
   dbg("Server: Doing a small pause of 1s\n");
-  wait(nullptr, 0, 1000);
+  Time::sleep(1000 * Time::MilliSecond);
   dbg("Server: Pause complete. listen..\n");
 
   CIOChannel server;
@@ -67,7 +67,7 @@ static void runClient(int max_id) {
   //addr = "::1";
   dbg("Client: Connecting to server %s\n", addr);
 
-  //wait(nullptr, 0, 1000);
+  //Time::sleep(1000 * Time::MilliSecond);
 
   CIOChannel client;
   if (!client.connect(addr, port )) {
