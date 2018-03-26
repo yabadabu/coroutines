@@ -153,7 +153,7 @@ StrChan fanInWithWait(StrChan a, StrChan b) {
       TWatchedEvent we[3] = { 
         TWatchedEvent(a, eEventType::EVT_CHANNEL_CAN_PULL ), 
         TWatchedEvent(b, eEventType::EVT_CHANNEL_CAN_PULL ),
-        Time::after( 400 * Time::MilliSecond )
+        TWatchedEvent( 400 * Time::MilliSecond )
       };
       int n = wait(we, 3);
       if (n == 2 || n == -1) {

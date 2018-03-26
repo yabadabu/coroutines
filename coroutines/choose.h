@@ -43,7 +43,7 @@ namespace Coroutines {
       , cb(new_cb)
     { }
     void declareEvent(TWatchedEvent* we) {
-      *we = TWatchedEvent(Time::after(delta));
+      *we = TWatchedEvent(delta);
     }
     bool run() {
       cb();

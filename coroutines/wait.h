@@ -23,7 +23,6 @@ namespace Coroutines {
     union {
 
       struct {
-        TTimeStamp time_programmed;    // Timestamp when it was programmed
         TTimeStamp time_to_trigger;    // Timestamp when will fire
       } time;
 
@@ -67,7 +66,6 @@ namespace Coroutines {
 
     TWatchedEvent(TTimeDelta timeout) {
       event_type = EVT_TIMEOUT;
-      time.time_programmed = Time::now();
       time.time_to_trigger = Time::now() + timeout;
       owner = current();
     }
@@ -94,6 +92,7 @@ namespace Coroutines {
   // Will return the index of the event which wake up
   int wait(TWatchedEvent* watched_events, int nevents_to_watch, TTimeDelta timeout = no_timeout);
 
+  // User generated event
   void wait(TEventID evt);
 
   // Wait a user provided function.
@@ -106,6 +105,7 @@ namespace Coroutines {
   // Empty fallback
   void waitAll();
 
+  // Template to wait for several objects
   template< typename A, typename ...Args >
   void waitAll(A a, Args... args) {
     wait(a);

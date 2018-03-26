@@ -634,7 +634,7 @@ namespace Coroutines {
   int executeActives() {
 		internal::num_loops++;
     internal::io_events.update();
-    checkTimeoutEvents();
+    internal::checkTimeoutEvents();
     return internal::runActives();
   }
 

@@ -22,25 +22,29 @@ namespace Coroutines {
     return usecs.count();
   }
 
-  void checkTimeoutEvents() {
-    current_timestamp = Time::now();
-    auto we = static_cast<TWatchedEvent*>( waiting_for_timeouts.first );
-    while (we) {
-      assert(we->event_type == EVT_TIMEOUT);
-      if (we->time.time_to_trigger <= current_timestamp)
-        wakeUp( we );
-      we = static_cast<TWatchedEvent*>(we->next);
+  namespace internal {
+
+    void checkTimeoutEvents() {
+      current_timestamp = Time::now();
+      auto we = static_cast<TWatchedEvent*>( waiting_for_timeouts.first );
+      while (we) {
+        assert(we->event_type == EVT_TIMEOUT);
+        if (we->time.time_to_trigger <= current_timestamp)
+          wakeUp( we );
+        we = static_cast<TWatchedEvent*>(we->next);
+      }
     }
-  }
 
-  void registerTimeoutEvent(TWatchedEvent* we) {
-    assert(we->event_type == EVT_TIMEOUT);
-    waiting_for_timeouts.append(we);
-  }
+    void registerTimeoutEvent(TWatchedEvent* we) {
+      assert(we->event_type == EVT_TIMEOUT);
+      waiting_for_timeouts.append(we);
+    }
 
-  void unregisterTimeoutEvent(TWatchedEvent* we) {
-    assert(we->event_type == EVT_TIMEOUT);
-    waiting_for_timeouts.detach(we);
+    void unregisterTimeoutEvent(TWatchedEvent* we) {
+      assert(we->event_type == EVT_TIMEOUT);
+      waiting_for_timeouts.detach(we);
+    }
+
   }
 
   // -------------------------------------------------
@@ -50,9 +54,6 @@ namespace Coroutines {
       wait(nullptr, 0, time_to_sleep);
     }
 
-    TWatchedEvent after(TTimeDelta ms_to_sleep) {
-      return TWatchedEvent(ms_to_sleep);
-    }
   }
 
   namespace internal {
