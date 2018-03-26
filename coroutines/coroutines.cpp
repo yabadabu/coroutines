@@ -645,7 +645,7 @@ namespace Coroutines {
 
     // coros can be enlarged inside the loop, watch the iterator
     // don't become invalidated
-    int i = 0;
+    size_t i = 0;
     while (i < coros.size()) {
       auto co = coros[i];
       ++i;
