@@ -59,11 +59,11 @@ int main(int argc, char** argv) {
   //sample_wait();
   //sample_channels();
   //sample_create();
-  sample_net();
+  //sample_net();
   //sample_sync();
   //sample_go();
   //sample_new_channels();
-  //sample_read_compress_write();
+  sample_read_compress_write();
   return 0;
 }
 

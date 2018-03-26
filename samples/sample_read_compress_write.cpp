@@ -10,17 +10,15 @@ void test_read_compress_write() {
   typedef TTypedChannel<const char*> StrChan;
   typedef TTypedChannel<IO::TBuffer> BufferChan;
 
-  auto files_to_load = StrChan::create(2);
+  auto files_to_load = StrChan::create(10);
   auto buffers = BufferChan::create(5);
 
   // This will queue some work to do
   auto c1 = start([files_to_load]() {
     files_to_load << "test";
-    files_to_load << "test2";
-    files_to_load << "d:/code/BezelSources.7z";
-    files_to_load << "d:/code/microprofile.zip";
-    files_to_load << "screenshot.png";
-    //files_to_load << "test4";
+    files_to_load << "sample_wait.o";
+    files_to_load << "BezelSources.7z";
+    files_to_load << "microprofile.zip";
     close(files_to_load);
   });
 
