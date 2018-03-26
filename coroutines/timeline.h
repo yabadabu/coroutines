@@ -6,7 +6,7 @@
 
 namespace Coroutines {
 
-  // Currently stored in num of milliseconds
+  // Currently stored in num of microseconds
   typedef uint64_t      TTimeStamp;
   typedef  int64_t      TTimeDelta;
 
@@ -19,7 +19,8 @@ namespace Coroutines {
     void sleep(TTimeDelta ms_to_sleep);
     TWatchedEvent after(TTimeDelta ms_to_sleep);
     
-    static const TTimeDelta MilliSecond = TTimeDelta(1);
+    static const TTimeDelta MicroSecond = TTimeDelta(1);
+    static const TTimeDelta MilliSecond = 1000 * MicroSecond;
     static const TTimeDelta Second = 1000 * MilliSecond;
     static const TTimeDelta Minute = 60 * Second;
     static const TTimeDelta Hour = 60 * Minute;

@@ -1,34 +1,6 @@
+#include <chrono>
 #include "timeline.h"
 #include "coroutines.h"
-
-#ifdef _WIN32
-  // Taken from redis sources ae.c
-  #include <sys/types.h> 
-  #include <time.h>
-  int gettimeofday(struct timeval * tp, struct timezone * tzp) {
-    // Note: some broken versions only have 8 trailing zero's, the correct epoch has 9 trailing zero's
-    // This magic number is the number of 100 nanosecond intervals since January 1, 1601 (UTC)
-    // until 00:00:00 January 1, 1970 
-    static const uint64_t EPOCH = ((uint64_t)116444736000000000ULL);
-
-    SYSTEMTIME  system_time;
-    FILETIME    file_time;
-    uint64_t    time;
-
-    GetSystemTime(&system_time);
-    SystemTimeToFileTime(&system_time, &file_time);
-    time = ((uint64_t)file_time.dwLowDateTime);
-    time += ((uint64_t)file_time.dwHighDateTime) << 32;
-
-    tp->tv_sec = (long)((time - EPOCH) / 10000000L);
-    tp->tv_usec = (long)(system_time.wMilliseconds * 1000);
-    return 0;
-  }
-
-#else
-  #include <sys/time.h>
-  #include <unistd.h>
-#endif
 
 namespace Coroutines {
   
@@ -39,15 +11,15 @@ namespace Coroutines {
 
   void getSecondsAndMilliseconds(TTimeDelta ts, long* num_secs, long* num_millisecs) {
     assert(num_secs && num_millisecs);
-    *num_secs = (long) (ts / 1000);
-    *num_millisecs = ts % 1000;
+    *num_secs = (long) (ts / Time::Second);
+    *num_millisecs = ts % Time::Second;
   }
 
   // Using millisecond resolution
   TTimeStamp Time::now() {
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    return tv.tv_sec * 1000 + (tv.tv_usec / 1000);
+    auto n = std::chrono::high_resolution_clock::now();
+    auto usecs = std::chrono::duration_cast<std::chrono::microseconds>(n.time_since_epoch());
+    return usecs.count();
   }
 
   void checkTimeoutEvents() {

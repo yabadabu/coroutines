@@ -241,10 +241,10 @@ void test_choose() {
 
 // ----------------------------------------------------------
 void sample_go() {
-  //test_concurrency();
-  //test_borings();
-  //test_fanIn();
-  //test_select_with_wait();
+  test_concurrency();
+  test_borings();
+  test_fanIn();
+  test_select_with_wait();
   test_choose();
 }
 
