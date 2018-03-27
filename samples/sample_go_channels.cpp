@@ -139,15 +139,12 @@ void test_read_closed_channels() {
 void test_tickers() {
   TSimpleDemo demo("test_tickers");
   start([]() {
+    auto start_ts = Time::now();
     auto ticker = every(500 * Time::MilliSecond);
-    start([ticker]() {
+    start([&]() {
       TTimeStamp ts;
       while (ts << ticker) {
-        long num_secs, num_millisecs;
-        getSecondsAndMilliseconds(ts, &num_secs, &num_millisecs);
-        num_secs = num_secs % 60;
-        long num_mins = num_secs / 60;
-        dbg("Tick at %ld:%ld:%03ld\n", num_mins, num_secs, num_millisecs);
+        dbg("Tick at %s\n", Time::asStr(ts - start_ts).c_str());
       }
     });
     Time::sleep(1600 * Time::MilliSecond);

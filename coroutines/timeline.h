@@ -2,13 +2,14 @@
 #define INC_COROUTINES_TIMELINE_H_
 
 #include <cstdint>
+#include <chrono>
 #include "list.h"
 
 namespace Coroutines {
 
-  // Currently stored in num of microseconds
-  typedef uint64_t      TTimeStamp;
-  typedef  int64_t      TTimeDelta;
+  // Currently stored in num of nanoseconds
+  typedef std::chrono::high_resolution_clock::time_point   TTimeStamp;
+  typedef std::chrono::duration<long long, std::nano>      TTimeDelta;
 
   // ---------------------------------------------------------
   namespace Time {
@@ -16,15 +17,28 @@ namespace Coroutines {
     TTimeStamp now();
     void sleep(TTimeDelta ms_to_sleep);
     
-    static const TTimeDelta MicroSecond = TTimeDelta(1);
+    static const TTimeDelta MicroSecond = std::chrono::microseconds(1); // = std::chrono::microseconds(1);
     static const TTimeDelta MilliSecond = 1000 * MicroSecond;
     static const TTimeDelta Second = 1000 * MilliSecond;
     static const TTimeDelta Minute = 60 * Second;
     static const TTimeDelta Hour = 60 * Minute;
+    
+    // To convert internal nano secs to number (integer) of seconds
+    // If TimeDelta t = 50.000.000 ns
+    // asMicroSeconds(t) = 50000;
+    // asMilliSeconds(t) = 50;
+    int32_t asMicroSeconds(TTimeDelta n);
+    int32_t asMilliSeconds(TTimeDelta n);
+    int32_t asSeconds(TTimeDelta n);
+    int32_t asMinutes(TTimeDelta n);
+
+    struct asStr {
+      char buf[32];
+      asStr(TTimeDelta dt);
+      const char* c_str() const { return buf; }
+    };
 
   }
-
-  void getSecondsAndMilliseconds(TTimeDelta ts, long* num_secs, long* num_millisecs);
 
   struct TScopedTime {
     TTimeStamp      start;

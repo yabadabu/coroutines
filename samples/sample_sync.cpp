@@ -125,11 +125,11 @@ namespace HTTP {
 struct TDownloadTask {
   const char*            uri;
   HTTP::TAnswer          answer;
-  TTimeStamp             ts_start = 0;
-  TTimeDelta             time_to_connect = 0;
-  TTimeDelta             time_to_download = 0;
-  TTimeDelta             time_task = 0;
-  TTimeStamp             ts_end = 0;
+  TTimeStamp             ts_start;
+  TTimeDelta             time_to_connect = TTimeDelta::zero();
+  TTimeDelta             time_to_download = TTimeDelta::zero();
+  TTimeDelta             time_task = TTimeDelta::zero();
+  TTimeStamp             ts_end;
   TDownloadTask(const char* new_uri)
     : uri(new_uri) {
   }
@@ -228,8 +228,8 @@ void test_download_in_parallel() {
   // Create another task to sumarize the data
   auto h_ac = start([ch_requests, ch_acc, &all_queued, &ndownloads]() {
 
-    TTimeStamp ts_start = 0;
-    TTimeStamp ts_end = 0;
+    TTimeStamp ts_start = TTimeStamp::min();
+    TTimeStamp ts_end = ts_start;
     size_t ntasks = 0;
     size_t total_bytes = 0;
     TDownloadTask* dt = nullptr;
@@ -239,10 +239,10 @@ void test_download_in_parallel() {
       // Accumulate some total bytes and max time
       total_bytes += dt->answer.content_size;
 
-      if (dt->ts_start < ts_start || ts_start == 0)
+      if (dt->ts_start < ts_start || ts_start == TTimeStamp::min())
         ts_start = dt->ts_start;
 
-      if (dt->ts_end > ts_end || ts_end == 0)
+      if (dt->ts_end > ts_end || ts_end == TTimeStamp::min())
         ts_end = dt->ts_end;
 
       ++ntasks;
@@ -250,10 +250,7 @@ void test_download_in_parallel() {
     }
 
     dbg("Total bytes downloaded %ld using %ld tasks\n", total_bytes, ntasks);
-    
-    long secs, msecs;
-    getSecondsAndMilliseconds(ts_end - ts_start, &secs, &msecs);
-    dbg("Total Required time: %ld:%ld\n", secs, msecs);
+    dbg("Total Required time: %s\n", Time::asStr(ts_end - ts_start).c_str());
 
     // Closing the channel will trigger the end of the coroutines waiting for more data
     close( ch_requests );

@@ -42,7 +42,7 @@ void test_concurrency() {
 // ---------------------------------------------------------
 // Create a coroutine which emits label at random intervals of 1 sec
 // returns the channel created
-StrChan boring(const char* label, TTimeDelta min_time = 0) {
+StrChan boring(const char* label, TTimeDelta min_time = TTimeDelta::zero()) {
   auto sc = StrChan::create();
   start([sc, label, min_time]() {
     while (true) {
@@ -176,9 +176,9 @@ StrChan fanInWithWait(StrChan a, StrChan b) {
 void test_select_with_wait() {
   TSimpleDemo demo("test_select_with_wait");
 
-  auto b1 = boring("john", 0);
-  auto b2 = boring("peter", 0);
-  
+  auto b1 = boring("john", 0 * Time::Second);
+  auto b2 = boring("peter", 0 * Time::Second);
+
   auto b = fanInWithWait(b1, b2);
   auto co2 = readChannel(b, 10);
 

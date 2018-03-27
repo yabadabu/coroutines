@@ -17,9 +17,7 @@ void dbg(const char *fmt, ...) {
     buf[1023] = 0x00;
   va_end(ap);
   TTimeDelta time_since_boot = Time::now() - boot_time;
-  long nsecs, nmsecs;
-  getSecondsAndMilliseconds(time_since_boot, &nsecs, &nmsecs);
-  printf("[%04d.%06d:%05x] %02d.%02d %s", (int)nsecs, (int)nmsecs, (int)getNumLoops(), current().id, current().age, buf);
+  printf("[%s:%05x] %02d.%02d %s", Time::asStr(time_since_boot).c_str(), (int)getNumLoops(), current().id, current().age, buf);
 #ifdef WIN32
   if( !strchr( buf, '\r') )
     ::OutputDebugStringA(buf);
@@ -56,13 +54,13 @@ int main(int argc, char** argv) {
 #endif
 
   boot_time = Time::now();
-  //sample_wait();
+  sample_wait();
   //sample_channels();
   //sample_create();
   //sample_net();
   //sample_sync();
   //sample_go();
-  sample_new_channels();
+  //sample_new_channels();
   //sample_read_compress_write();
   return 0;
 }

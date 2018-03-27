@@ -85,9 +85,15 @@ namespace Coroutines {
 
   };
 
+// Windows is messing with the max as a macro
+#ifdef max
+#undef max
+#undef min
+#endif
+
   // WAIT_FOR_EVER means no timeout
-  static const TTimeDelta no_timeout = ~((TTimeDelta)0);
-  static const int wait_timedout = ~((int)0);
+  static const TTimeDelta no_timeout = TTimeDelta::max(); // ~((TTimeDelta)0);
+  static const int wait_timedout = -1;
   
   // Will return the index of the event which wake up
   int wait(TWatchedEvent* watched_events, int nevents_to_watch, TTimeDelta timeout = no_timeout);

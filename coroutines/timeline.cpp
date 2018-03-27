@@ -9,17 +9,35 @@ namespace Coroutines {
   TTimeStamp current_timestamp;
   TList      waiting_for_timeouts;
 
-  void getSecondsAndMilliseconds(TTimeDelta ts, long* num_secs, long* num_millisecs) {
-    assert(num_secs && num_millisecs);
-    *num_secs = (long) (ts / Time::Second);
-    *num_millisecs = ts % Time::Second;
-  }
+  namespace Time {
 
-  // Using millisecond resolution
-  TTimeStamp Time::now() {
-    auto n = std::chrono::high_resolution_clock::now();
-    auto usecs = std::chrono::duration_cast<std::chrono::microseconds>(n.time_since_epoch());
-    return usecs.count();
+    asStr::asStr(TTimeDelta dt) {
+      auto num_ns = dt.count();
+      int num_mins = asMinutes(dt) % 60;
+      int num_secs = asSeconds(dt) % 60;
+      long num_millis = long(num_ns % 1000000000) / 1000;
+      snprintf(buf, sizeof(buf) - 1, "%02d:%02d:%06ld", num_mins, num_secs, num_millis);
+    }
+
+    int32_t asMicroSeconds(TTimeDelta t) {
+      return (uint32_t) (std::chrono::duration_cast<std::chrono::microseconds>(t).count());
+    }
+
+    int32_t asMilliSeconds(TTimeDelta t) {
+      return (uint32_t)std::chrono::duration_cast<std::chrono::milliseconds>(t).count();
+    }
+
+    int32_t asSeconds(TTimeDelta t) {
+      return (uint32_t)std::chrono::duration_cast<std::chrono::seconds>(t).count();
+    }
+
+    int32_t asMinutes(TTimeDelta t) {
+      return (uint32_t)std::chrono::duration_cast<std::chrono::minutes>(t).count();
+    }
+
+    TTimeStamp now() {
+      return std::chrono::high_resolution_clock::now();
+    }
   }
 
   namespace internal {

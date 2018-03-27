@@ -30,9 +30,9 @@ void test_yield() {
 
 // -----------------------------------------------------------
 void basic_wait_time(const char* title, TTimeDelta amount_of_time) {
-  dbg("%s boots. Will wait %d milli_secs\n", title, amount_of_time);
+  dbg("%s boots. Will wait %d msecs\n", title, Time::asMilliSeconds( amount_of_time ));
   wait(nullptr, 0, amount_of_time);
-  dbg("%s After waiting %d usecs we leave\n", title, amount_of_time);
+  dbg("%s After waiting %d msecs we leave\n", title, Time::asMilliSeconds(amount_of_time));
 }
 
 void test_wait_time() {
@@ -43,8 +43,8 @@ void test_wait_time() {
     auto co2 = start([]() { basic_wait_time("co2", 5 * Time::Second); });
   }
   auto elapsed = tm.elapsed();
-  dbg("test_wait_time expected to finish in %ld msecs, and finished in %ld...\n", 5 * Time::Second, elapsed );
-  assert( abs( (int)( elapsed - ( 5 * Time::Second )) ) < 5 * Time::MilliSecond );
+  dbg("test_wait_time expected to finish in %ld msecs, and finished in %ld...\n", Time::asMilliSeconds( 5 * Time::Second ), Time::asMilliSeconds( elapsed ) );
+  assert( abs( Time::asMilliSeconds( elapsed - ( 5 * Time::Second ) ) ) < 5 );
 }
 
 // -----------------------------------------------------------
@@ -62,9 +62,9 @@ void test_wait_all() {
       dbg("waitAll continues...\n");
     });
   }
-  TTimeStamp elapsed = tm.elapsed();
+  TTimeDelta elapsed = tm.elapsed();
   dbg("waitAll expected to finish in %d msecs, and finished in %d...\n", 2500 * Time::MilliSecond, elapsed );
-  assert( abs( (int)( elapsed - 2500 * Time::MilliSecond) ) < 10 * Time::MilliSecond );
+  assert( abs( Time::asMilliSeconds( elapsed - 2500 * Time::MilliSecond) ) < 5 );
 }
 
 // ---------------------------------------------------------
@@ -189,8 +189,8 @@ void test_user_events() {
 // ----------------------------------------------------------
 void sample_wait() {
   test_user_events();
-  //test_yield();
-  //test_wait_time();
+  test_yield();
+  test_wait_time();
   //test_wait_all();
   //test_wait_keys();
   //test_wait_2_coroutines_with_timeout();
