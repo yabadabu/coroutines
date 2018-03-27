@@ -206,7 +206,7 @@ StrChan fanInChoose(StrChan a, StrChan b) {
         ifCanPull(b, [c](const char* msg) {
           c << msg;
         }),
-        ifTimeout(400, []() {
+        ifTimeout(400 * Time::MilliSecond, []() {
           dbg("Timeout waiting for a or b\n");
         })
       );

@@ -52,7 +52,7 @@ void test_new_choose() {
         ifCanPull(c2, [f](const char* msg) {
           push(f, msg);
         }),
-        ifTimeout(1500, []() {
+        ifTimeout(1500 * Time::MilliSecond, []() {
           dbg("Timeout waiting for a or b\n");
         })
       );

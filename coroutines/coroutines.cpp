@@ -44,7 +44,7 @@ namespace Coroutines {
       
       // Waiting events info
       TWatchedEvent             timeout_watched_event;
-      TTimeStamp                timeout_watching_events = Coroutines::no_timeout;  // 
+      TTimeDelta                timeout_watching_events = Coroutines::no_timeout;  // 
       TWatchedEvent*            watched_events = nullptr;
       int                       nwatched_events = 0;
 
@@ -256,7 +256,6 @@ namespace Coroutines {
 
       // Do we have to install a timeout event watch?
       if (timeout != no_timeout) {
-        assert(timeout >= 0);
         co->timeout_watched_event = TWatchedEvent(timeout);
         registerTimeoutEvent(&co->timeout_watched_event);
       }

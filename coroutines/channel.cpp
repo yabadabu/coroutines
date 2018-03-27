@@ -95,13 +95,15 @@ namespace Coroutines {
       if (closed())
         return false;
 
-      TTimeDelta time_for_event = next - Time::now();
+      TTimeStamp right_now = Time::now();
 
       // We arrive too late? The event has triggered?
-      if (time_for_event < 0) {
+      if (next < right_now) {
         prepareNext();
         return true;
       }
+
+      TTimeDelta time_for_event = next - right_now;
 
       TWatchedEvent wes[2];
       wes[0] = TWatchedEvent(time_for_event);
