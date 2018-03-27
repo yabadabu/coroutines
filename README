@@ -17,14 +17,20 @@ This is a C++ framework to run coroutines using fcontext as a switching platform
   mkdir build  
   cmake -G "Visual Studio 15 2017 Win64" ..
 
+** Dependencies
+ 
+ - fcontext lib as switching platform
+ - c++11 compiler
+
 ** TODO
 
-- Add io channels as regular channels to use in the choose
+- Add io channels to use in the choose
 - Add more examples
 - Remove old entries from 'VDescriptors' at internal::TIOEvents once done
 - Wait for Barrier or semaphores.
 - Test poll, epoll
 - Add HTTP download
++ Using std::chrono
 + Increase timer resolution to usecs
 + Close channel to ChanHandle
 + Wait for async file reads.
