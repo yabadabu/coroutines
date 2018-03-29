@@ -1,5 +1,8 @@
 #pragma once
 
+#include <cstdarg>
+#include <cstdio>
+#include <vector>
 #include "coroutines/coroutines.h"
 
 extern void dbg(const char *fmt, ...);
@@ -9,6 +12,7 @@ extern void runUntilAllCoroutinesEnd();
 #ifdef _WIN32
 
 #define vsnprintf     _vsnprintf_s
+#define sscanf        sscanf_s
 #define isKeyPressed(x)  ((GetAsyncKeyState(x) & 0x8000) != 0)
 #define keyBecomesPressed(x)  ((GetAsyncKeyState(x) & 0x0001) != 1)
 
@@ -19,6 +23,8 @@ extern void runUntilAllCoroutinesEnd();
 
 #endif
 
+// -------------------------------------------------
+// In the dtor will wait untill all coroutines have finished
 // -------------------------------------------------
 struct TSimpleDemo {
   const char* title;
@@ -31,4 +37,6 @@ struct TSimpleDemo {
     dbg("%s ends\n", title);
   }
 };
+
+typedef Coroutines::TTypedChannel<const char*> StrChan;
 

@@ -22,6 +22,12 @@
     <ClCompile Include="sample_wait.cpp" />
     <ClCompile Include="sample_sync.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="sample_go.cpp" />
+    <ClCompile Include="sample_go_channels.cpp" />
+    <ClCompile Include="sample_read_compress_write.cpp" />
+    <ClCompile Include="..\coroutines\io_file.cpp">
+      <Filter>coroutines</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="coroutines">
@@ -61,6 +67,15 @@
     </ClInclude>
     <ClInclude Include="sample.h" />
     <ClInclude Include="..\coroutines\events.h">
+      <Filter>coroutines</Filter>
+    </ClInclude>
+    <ClInclude Include="..\coroutines\choose.h">
+      <Filter>coroutines</Filter>
+    </ClInclude>
+    <ClInclude Include="..\coroutines\channel_handle.h">
+      <Filter>coroutines</Filter>
+    </ClInclude>
+    <ClInclude Include="..\coroutines\io_file.h">
       <Filter>coroutines</Filter>
     </ClInclude>
   </ItemGroup>

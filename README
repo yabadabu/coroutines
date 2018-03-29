@@ -1,77 +1,91 @@
-This is a C++ wrapper to run coroutines using fcontext as a switching platform.
+This is a C++ framework to run coroutines using fcontext as a switching platform.
+
+** Status
+
+- Runs on Windows (x64), Linux & OSX
+- Currently just one thread does all the job without being blocked.
+- Support for buffered channels with data types similar to go channels
+- Support for timers and tickers as channels.
+- Support for network (TCP ipv4 and ipv6)
+- Support to load/save full files in async operations
+- Wait for other coroutines, custom events, timeouts, channels, io events.
+- Co's can wait for several mixed conditions
+- You specify when can the coroutines run.
+
+** Install 
+  
+  mkdir build  
+  cmake -G "Visual Studio 15 2017 Win64" ..
+
+** Dependencies
+ 
+ - fcontext lib as switching platform
+ - c++11 compiler
 
 ** TODO
 
+- Add io channels to use in the choose
 - Add more examples
 - Remove old entries from 'VDescriptors' at internal::TIOEvents once done
-- Move TChannel/CIOHandle to handle-based resource or simple identifiers
-- Wait for Barrier.
-- Wait for async file reads
+- Wait for Barrier or semaphores.
 - Test poll, epoll
 - Add HTTP download
++ Using std::chrono
++ Increase timer resolution to usecs
++ Close channel to ChanHandle
++ Wait for async file reads.
++ Remove old channels
++ Move TChannel/CIOHandle to handle-based resource or simple identifiers
 + Allow user to create his own events, which when triggered will wake up
 + Support for IPv6
 + Test in unix/osx 
 + Confirm a co can abort itself, or another co.
 + Use proper real time for wait fn's. We have millisecond precision
 
-* get/store use data pointer per co. Stored in the lambdas
-* Move vars to sched. Add a sched pointer to tcoro. Not needed unless we add threads
+** Behaviour
 
 - A co is:
-  - Running, meaning will run until yields or checks a wait condition
-  - Waiting for events we control
-    - Reading data from a channel, and now there is data in the channel
-    - Writing data to a channel, and now there is space in the channel
-    - Waiting another co to finish
-  - Waiting for time
-    - Sort co's waiting for time events, sorted by waiting time. Each time
-      we tick, dispatch those surpassed by the time. A co could be waiting
-      for data in a channel and waiting for time -> 
-  - Waiting for user defined conditions which need to be checked/poll on every tick
-  - Waiting for I/O,Net operations
-  - Allow user to create his own events, which when triggered will wake up
+  - Running, meaning will run until yields or faces a wait condition
+  - We can wait because:
+    - We want to read from a channel and there is no data in the channel
+    - We want to write to a channel, but there is no space left in the channel
+    - We want to wait for another co to finish
+    - We just want to wait some time (microsecs resolution)
+    - Waiting for user defined conditions which need to be checked/poll on every 
+      tick
+    - Waiting for Net operations
+    - We want to wait until some user generated events is set.
+      Setting the event will wake up me
+- Other rules
+    - When a channel has 1 data and there is more than one co waiting for 
+        that data, only the first which entered sleep mode will be awaken. The
+        other will remain in sleep mode
+    - A co can exit itself
+    - A co can create other co
+    - The main thread can't enter a wait state. You must be inside a co
+
 - Implications
   - A channel must known which co's are waiting for data in the channel
   - A channel must known which co's are waiting for space in the channel
   - A co must known who is waiting for him. And wake up when dies.
   - There is a list of co waiting for time events
   - A co could be waiting for several channels events and a timeout
-- When a channel get data and there is more than one co waiting for that data
-  choose a random co and give him the data
-
-- All this could be generalized to:
-  - There are events
-    - Type and arg
-  - There are event_watchers: pairs_of: event - co
-  - When an event is fired -> chech if there are watchers of this event
-    - awake the associated co
-    - remove events watched by the co
-
-- Or we could have:
-  - Event sources: 
-    - Examples
-      - Coroutines when leaving
-      - Channels when data becomes available
-      - Channels when data can be stored
-      - Time clock
-    - Members
-      - List of watchers waiting for the events for each event type
+  - A co knows which other co's are waiting for me. Destroying myself
+    will wake up those co's.
   - Event watchers: The co's
     - Need to know to which event sources they are subscribed
     - Need to be able to unsubscribe from all their event sources
 
-- If the 'watched event' is created in the stack, we don't need to malloc/free that memory
-  Just be sure the events are unregistered when the thread continues
-- Add a next/prev link so the events can be anywhere
-- When a co wants to 'wait' for activity in two channels with a timer...
+  - If the 'watched event' is created in the stack, we don't need to malloc/free that memory
+    Just be sure the events are unregistered when the thread continues
+  - Add a next/prev link so the events can be anywhere
+
+  - When a co wants to 'wait' for activity in two channels with a timer...
     TEventWatch events_to_watch[2] = {
       { this_handle, EVT_CHANNEL_DATA_CAN_BE_READ, channel1, &data1, next? }
     , { this_handle, EVT_CHANNEL_DATA_CAN_BE_READ, channel2, &data2, next? }
     };
-    wait( events_to_watch, 2, 1000 );
+    wait( events_to_watch, 2, 1000 * Time::Millisecond );
 
-- co's are dispatched by several threads, not just one (a la ps4)
-- Check support for coroutine local storage (or cls())
 
 

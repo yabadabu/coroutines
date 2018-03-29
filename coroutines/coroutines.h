@@ -12,7 +12,6 @@ namespace Coroutines {
   typedef uint64_t      u64;
   typedef uint8_t       u8;
 
-  class  TChannel;
   struct THandle;
   struct TWatchedEvent;
 
@@ -45,11 +44,14 @@ namespace Coroutines {
 
 }
 
+#include "channel_handle.h"
 #include "list.h"
 #include "timeline.h"
 #include "io_events.h"
 #include "events.h"
 #include "wait.h"
 #include "channel.h"
+#include "io_channel.h"
+#include "choose.h"
 
 #endif

@@ -6,6 +6,7 @@
 
 using namespace Coroutines;
 using Coroutines::wait;
+using Time::now;
 
 namespace HTTP {
 
@@ -16,7 +17,7 @@ namespace HTTP {
     std::string uri;        // Given by the user
     std::string host;
     std::string path = "/";
-    std::string protocol_version = "HTTP/1.1";
+    std::string protocol_version = "HTTP/1.0";
     std::string method = "GET";
     std::string agent = "Mozilla/4.0 (compatible; MSIE5.01; Windows NT)";
     std::string request;
@@ -57,7 +58,7 @@ namespace HTTP {
       if (c == std::string::npos)
         return false;
 
-      sscanf_s(header.data() + c + 16, "%ld", &header_content_size);
+      sscanf(header.data() + c + 16, "%d", &header_content_size);
       dbg("Content size is %d\n", header_content_size);
       content_size = header_content_size;
       return true;
@@ -124,11 +125,11 @@ namespace HTTP {
 struct TDownloadTask {
   const char*            uri;
   HTTP::TAnswer          answer;
-  TTimeStamp             ts_start = 0;
-  TTimeDelta             time_to_connect = 0;
-  TTimeDelta             time_to_download = 0;
-  TTimeDelta             time_task = 0;
-  TTimeStamp             ts_end = 0;
+  TTimeStamp             ts_start;
+  TTimeDelta             time_to_connect = TTimeDelta::zero();
+  TTimeDelta             time_to_download = TTimeDelta::zero();
+  TTimeDelta             time_task = TTimeDelta::zero();
+  TTimeStamp             ts_end;
   TDownloadTask(const char* new_uri)
     : uri(new_uri) {
   }
@@ -144,15 +145,15 @@ bool download(TDownloadTask* dt) {
   dt->ts_start = now();
 
   // Connect
-  CIOChannel conn;
-  if (!conn.connect(r.host.c_str(), r.port, 1000)) {
+  auto conn = Net::connect(r.host.c_str(), r.port);
+  if (!conn) {
     dbg("Failed to connect to uri %s\n", dt->uri);
     return false;
   }
   dt->time_to_connect = now() - dt->ts_start;
 
   // Build and sent request
-  if (!conn.send(r.request.c_str(), r.request.length()))
+  if (!Net::send(conn, r.request.c_str(), r.request.length()))
     return false;
 
   // Recv answer
@@ -160,7 +161,7 @@ bool download(TDownloadTask* dt) {
   while( true ) {
     // Save downloaded chunk in a tmp buffer
     uint8_t buf[8192];
-    int bytes_recv = conn.recvUpTo(buf, sizeof(buf));
+    int bytes_recv = Net::recvUpTo(conn, buf, sizeof(buf));
     if (bytes_recv > 0) {
       dbg("Recv %ld bytes for %s\n", bytes_recv, dt->uri);
       // Let the answer parse the buffer
@@ -180,7 +181,7 @@ bool download(TDownloadTask* dt) {
   dt->ts_end = now();
   dt->time_task = dt->ts_end - dt->ts_start;
 
-  conn.close();
+  Net::close(conn);
 
   return true;
 }
@@ -189,19 +190,23 @@ bool download(TDownloadTask* dt) {
 void test_download_in_parallel() {
   TSimpleDemo demo("test_download_in_parallel");
 
-  TChannel* ch_requests = new TChannel(10, sizeof(TDownloadTask*));
-  TChannel* ch_acc = new TChannel(10, sizeof(TDownloadTask*));
+  auto ch_requests = TTypedChannel<TDownloadTask*>::create(10);
+  auto ch_acc = TTypedChannel<TDownloadTask*>::create(10);
   bool      all_queued = false;
   int       ndownloads = 0;
 
   // Generate the requests from another co with some in the middle waits
   auto co_producer = start([ch_requests, &all_queued, &ndownloads]() {
-    push(ch_requests, new TDownloadTask("www.lavanguardia.com")); ++ndownloads;
-    wait(nullptr, 0, 100);
-    push(ch_requests, new TDownloadTask("blog.selfshadow.com")); ++ndownloads;
-    push(ch_requests, new TDownloadTask("www.humus.name/index.php?page=News")); ++ndownloads;
-    wait(nullptr, 0, 100);
-    push(ch_requests, new TDownloadTask("www.humus.name/index.php?page=3D")); ++ndownloads;
+    auto d1 = new TDownloadTask("www.lavanguardia.com");
+    ch_requests << d1; ++ndownloads;
+    wait(nullptr, 0, 100 * Time::MilliSecond);
+    ch_requests << new TDownloadTask("blog.selfshadow.com");
+    ++ndownloads;
+    d1 = new TDownloadTask("www.humus.name/index.php?page=News");
+    ch_requests << d1; ++ndownloads;
+    wait(nullptr, 0, 100 * Time::MilliSecond);
+    d1 = new TDownloadTask("www.humus.name/index.php?page=3D");
+    ch_requests << d1; ++ndownloads;
     all_queued = true;
   });
 
@@ -211,11 +216,11 @@ void test_download_in_parallel() {
     auto h = start([ch_requests, ch_acc]() {
       // Take a download task from the channel while the channel is alive
       TDownloadTask* dt = nullptr;
-      while (pull(ch_requests, dt)) {
+      while (dt << ch_requests) {
         // Download it and..
         download(dt);
         // Queue to the next stage
-        push(ch_acc, dt);
+        ch_acc << dt;
       }
     });
   }
@@ -223,21 +228,21 @@ void test_download_in_parallel() {
   // Create another task to sumarize the data
   auto h_ac = start([ch_requests, ch_acc, &all_queued, &ndownloads]() {
 
-    TTimeStamp ts_start = 0;
-    TTimeStamp ts_end = 0;
+    TTimeStamp ts_start = TTimeStamp::min();
+    TTimeStamp ts_end = ts_start;
     size_t ntasks = 0;
     size_t total_bytes = 0;
     TDownloadTask* dt = nullptr;
-    while ((ntasks < ndownloads || !all_queued ) && pull(ch_acc, dt)) {
+    while ((ntasks < ndownloads || !all_queued ) && (dt << ch_acc)) {
       assert(dt);
 
       // Accumulate some total bytes and max time
       total_bytes += dt->answer.content_size;
 
-      if (dt->ts_start < ts_start || ts_start == 0)
+      if (dt->ts_start < ts_start || ts_start == TTimeStamp::min())
         ts_start = dt->ts_start;
 
-      if (dt->ts_end > ts_end || ts_end == 0)
+      if (dt->ts_end > ts_end || ts_end == TTimeStamp::min())
         ts_end = dt->ts_end;
 
       ++ntasks;
@@ -245,16 +250,13 @@ void test_download_in_parallel() {
     }
 
     dbg("Total bytes downloaded %ld using %ld tasks\n", total_bytes, ntasks);
-    
-    long secs, msecs;
-    getSecondsAndMilliseconds(ts_end - ts_start, &secs, &msecs);
-    dbg("Total Required time: %ld:%ld\n", secs, msecs);
+    dbg("Total Required time: %s\n", Time::asStr(ts_end - ts_start).c_str());
 
     // Closing the channel will trigger the end of the coroutines waiting for more data
-    ch_requests->close();
+    close( ch_requests );
 
     // This is for cleanup
-    ch_acc->close();
+    close(ch_acc);
   });
 
 }

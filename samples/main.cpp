@@ -16,10 +16,12 @@ void dbg(const char *fmt, ...) {
   if (n < 0)
     buf[1023] = 0x00;
   va_end(ap);
-  TTimeDelta time_since_boot = now() - boot_time;
-  long nsecs, nmsecs;
-  getSecondsAndMilliseconds(time_since_boot, &nsecs, &nmsecs);
-  printf("[%04d.%03d:%05x] %02d.%02d %s", (int)nsecs, (int)nmsecs, (int)getNumLoops(), current().id, current().age, buf);
+  TTimeDelta time_since_boot = Time::now() - boot_time;
+  printf("[%s:%05x] %02d.%02d %s", Time::asStr(time_since_boot).c_str(), (int)getNumLoops(), current().id, current().age, buf);
+#ifdef WIN32
+  if( !strchr( buf, '\r') )
+    ::OutputDebugStringA(buf);
+#endif
 }
 
 void runUntilAllCoroutinesEnd() {
@@ -39,6 +41,9 @@ extern void sample_net();
 extern void sample_create();
 extern void sample_wait();
 extern void sample_sync();
+extern void sample_go();
+extern void sample_new_channels();
+extern void sample_read_compress_write();
 
 // -----------------------------------------------------------
 int main(int argc, char** argv) {
@@ -48,12 +53,21 @@ int main(int argc, char** argv) {
   int iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
 #endif
 
-  boot_time = now();
+  dbg("sizeof(TWatchedEvent) = %ld\n", sizeof(TWatchedEvent));
+  dbg("sizeof(THandle) = %ld\n", sizeof(THandle));
+  dbg("sizeof(StrChan) = %ld\n", sizeof(StrChan));
+  dbg("sizeof(TTimeStamp) = %ld\n", sizeof(TTimeStamp));
+  
+
+  boot_time = Time::now();
   //sample_wait();
   //sample_channels();
   //sample_create();
-  //sample_net();
-  sample_sync();
+  sample_net();
+  //sample_sync();
+  //sample_go();
+  //sample_new_channels();
+  //sample_read_compress_write();
   return 0;
 }
 

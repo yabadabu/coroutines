@@ -7,10 +7,10 @@ namespace Coroutines {
     EVT_USER_EVENT = 0
   , EVT_COROUTINE_ENDS
   , EVT_TIMEOUT
-  , EVT_CHANNEL_CAN_PUSH
-  , EVT_CHANNEL_CAN_PULL
   , EVT_SOCKET_IO_CAN_READ
   , EVT_SOCKET_IO_CAN_WRITE
+  , EVT_CHANNEL_CAN_PUSH
+  , EVT_CHANNEL_CAN_PULL
   , EVT_INVALID
   , EVT_TYPES_COUNT
   };
@@ -23,13 +23,6 @@ namespace Coroutines {
     union {
 
       struct {
-        TChannel*  channel;
-        void*      data_addr;
-        size_t     data_size;
-      } channel;
-
-      struct {
-        TTimeStamp time_programmed;    // Timestamp when it was programmed
         TTimeStamp time_to_trigger;    // Timestamp when will fire
       } time;
 
@@ -42,8 +35,12 @@ namespace Coroutines {
       } io;
 
       struct {
-        TEventID    event_id;
+        TEventID   event_id;
       } user_event;
+
+      struct {
+        TChanHandle handle;
+      } channel;
 
     };
 
@@ -51,12 +48,10 @@ namespace Coroutines {
     TWatchedEvent() : event_type(EVT_INVALID) { }
 
     // Wait until the we can push/pull an item into/from that channel
-    template< class TObj >
-    TWatchedEvent(TChannel* new_channel, const TObj &obj, eEventType evt)
+    TWatchedEvent(TChanHandle new_channel, eEventType evt)
     {
-      channel.channel = new_channel;
-      channel.data_addr = (TObj*)&obj;
-      channel.data_size = sizeof(TObj);
+      assert( evt == EVT_CHANNEL_CAN_PUSH || evt == EVT_CHANNEL_CAN_PULL );
+      channel.handle = new_channel;
       event_type = evt;
       owner = current();
     }
@@ -71,8 +66,7 @@ namespace Coroutines {
 
     TWatchedEvent(TTimeDelta timeout) {
       event_type = EVT_TIMEOUT;
-      time.time_programmed = now();
-      time.time_to_trigger = now() + timeout;
+      time.time_to_trigger = Time::now() + timeout;
       owner = current();
     }
 
@@ -91,13 +85,20 @@ namespace Coroutines {
 
   };
 
+// Windows is messing with the max as a macro
+#ifdef max
+#undef max
+#undef min
+#endif
+
   // WAIT_FOR_EVER means no timeout
-  static const TTimeDelta no_timeout = ~((TTimeDelta)0);
-  static const int wait_timedout = ~((int)0);
+  static const TTimeDelta no_timeout = TTimeDelta::max(); // ~((TTimeDelta)0);
+  static const int wait_timedout = -1;
   
   // Will return the index of the event which wake up
   int wait(TWatchedEvent* watched_events, int nevents_to_watch, TTimeDelta timeout = no_timeout);
 
+  // User generated event
   void wait(TEventID evt);
 
   // Wait a user provided function.
@@ -110,6 +111,7 @@ namespace Coroutines {
   // Empty fallback
   void waitAll();
 
+  // Template to wait for several objects
   template< typename A, typename ...Args >
   void waitAll(A a, Args... args) {
     wait(a);

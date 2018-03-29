@@ -29,22 +29,22 @@ void test_yield() {
 }
 
 // -----------------------------------------------------------
-void basic_wait_time(const char* title, int milli_secs) {
-  dbg("%s boots. Will wait %d milli_secs\n", title, milli_secs);
-  wait(nullptr, 0, milli_secs);
-  dbg("%s After waiting %d ticks we leave\n", title, milli_secs);
+void basic_wait_time(const char* title, TTimeDelta amount_of_time) {
+  dbg("%s boots. Will wait %d msecs\n", title, Time::asMilliSeconds( amount_of_time ));
+  wait(nullptr, 0, amount_of_time);
+  dbg("%s After waiting %d msecs we leave\n", title, Time::asMilliSeconds(amount_of_time));
 }
 
 void test_wait_time() {
   TScopedTime tm;
   {
     TSimpleDemo demo("test_wait_time");
-    auto co1 = start([]() { basic_wait_time("co1", 3000); });
-    auto co2 = start([]() { basic_wait_time("co2", 5000); });
+    auto co1 = start([]() { basic_wait_time("co1", 3 * Time::Second); });
+    auto co2 = start([]() { basic_wait_time("co2", 5 * Time::Second); });
   }
   auto elapsed = tm.elapsed();
-  dbg("test_wait_time expected to finish in %d msecs, and finished in %d...\n", 5000, elapsed );
-  assert( abs( (int)elapsed - 5004 ) < 5 );
+  dbg("test_wait_time expected to finish in %ld msecs, and finished in %ld...\n", Time::asMilliSeconds( 5 * Time::Second ), Time::asMilliSeconds( elapsed ) );
+  assert( abs( Time::asMilliSeconds( elapsed - ( 5 * Time::Second ) ) ) < 5 );
 }
 
 // -----------------------------------------------------------
@@ -53,18 +53,18 @@ void test_wait_all() {
   {
     TSimpleDemo demo("test_wait_all");
     auto co1 = start([]() {
-      auto coA = start([]() {basic_wait_time("A", 2500); });
-      auto coB = start([]() {basic_wait_time("B", 1000); });
-      auto coC = start([]() {basic_wait_time("C", 1500); });
+      auto coA = start([]() {basic_wait_time("A", 2500 * Time::MilliSecond); });
+      auto coB = start([]() {basic_wait_time("B", 1000 * Time::MilliSecond); });
+      auto coC = start([]() {basic_wait_time("C", 1500 * Time::MilliSecond); });
 
       // Waits for all co end before continuing...
       waitAll( coA, coB, coC );
       dbg("waitAll continues...\n");
     });
   }
-  TTimeStamp elapsed = tm.elapsed();
-  dbg("waitAll expected to finish in %d msecs, and finished in %d...\n", 2500, elapsed );
-  assert( abs( (int)elapsed - 2500 ) < 10 );
+  TTimeDelta elapsed = tm.elapsed();
+  dbg("waitAll expected to finish in %d msecs, and finished in %d...\n", 2500 * Time::MilliSecond, elapsed );
+  assert( abs( Time::asMilliSeconds( elapsed - 2500 * Time::MilliSecond) ) < 5 );
 }
 
 // ---------------------------------------------------------
@@ -89,8 +89,8 @@ void test_wait_keys() {
 void test_wait_2_coroutines_with_timeout() {
   TSimpleDemo demo("test_wait_2_coroutines_with_timeout");
 
-  auto coA = start([]() {basic_wait_time("A", 13); });
-  auto coB = start([]() {basic_wait_time("B", 8); });
+  auto coA = start([]() {basic_wait_time("A", 13 * Time::Second); });
+  auto coB = start([]() {basic_wait_time("B", 8 * Time::Second); });
   dbg("co to wait are %08x %08x (%p %p)\n", coA.asUnsigned(), coB.asUnsigned(), &coA, &coB);
 
   auto co2 = start([coA, coB]() {
@@ -112,7 +112,7 @@ void test_wait_2_coroutines_with_timeout() {
         break;
       }
       dbg("co2 goes to sleep for 5s waiting for coA and/or coB to end (%d)\n", n);
-      int k = wait(evts, n, 5);
+      int k = wait(evts, n, 5 * Time::Second);
       if (k == wait_timedout)
         dbg("co2 timedout\n");
       else
@@ -130,16 +130,18 @@ void test_user_events() {
   TEventID evt1 = createEvent();;
   TEventID evt2 = createEvent();;
 
+  // Waits 1s, sets Evt2, waits 1s, sets Evt1
+
   auto coA = start([evt1,evt2]() {
-    basic_wait_time("A2", 1000);
+    basic_wait_time("A2", 1000 * Time::MilliSecond );
     dbg("A. Setting evt2\n");
     setEvent(evt2);
-    basic_wait_time("A1", 1000);
+    basic_wait_time("A1", 1000 * Time::MilliSecond );
     dbg("A. Setting evt1\n");
     setEvent(evt1);
   });
 
-  auto coB = start([evt1,evt2]() {
+  auto coB1 = start([evt1,evt2]() {
     
     TWatchedEvent we[2];
     while (true) {
@@ -151,12 +153,12 @@ void test_user_events() {
         we[n++] = TWatchedEvent(evt2);
       if (!n)
         break;
-      dbg("B. Waiting for %d events\n", n);
+      dbg("B1. Waiting for %d events\n", n);
       int idx = wait(we, n);
-      dbg("B. Event idx %d/%d triggered!\n", idx, n);
+      dbg("B1. Event idx %d/%d triggered!\n", idx, n);
     }
 
-    dbg("B. Done\n");
+    dbg("B1. Done\n");
   });
 
   auto coB2 = start([evt1, evt2]() {
@@ -171,9 +173,9 @@ void test_user_events() {
     dbg("B3. Done\n");
   });
 
-  auto coC = start([coA, coB, coB2, coB3, evt1, evt2]() {
+  auto coC = start([coA, coB1, coB2, coB3, evt1, evt2]() {
     dbg("C. Waiting for all co's to finish\n");
-    waitAll( coA, coB, coB2, coB3 );
+    waitAll( coA, coB1, coB2, coB3 );
     // Clear the events
     destroyEvent(evt1);
     destroyEvent(evt2);
@@ -187,8 +189,8 @@ void test_user_events() {
 // ----------------------------------------------------------
 void sample_wait() {
   test_user_events();
-  //test_yield();
-  //test_wait_time();
+  test_yield();
+  test_wait_time();
   //test_wait_all();
   //test_wait_keys();
   //test_wait_2_coroutines_with_timeout();
