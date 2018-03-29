@@ -145,15 +145,15 @@ bool download(TDownloadTask* dt) {
   dt->ts_start = now();
 
   // Connect
-  CIOChannel conn;
-  if (!conn.connect(r.host.c_str(), r.port )) {
+  auto conn = Net::connect(r.host.c_str(), r.port);
+  if (!conn) {
     dbg("Failed to connect to uri %s\n", dt->uri);
     return false;
   }
   dt->time_to_connect = now() - dt->ts_start;
 
   // Build and sent request
-  if (!conn.send(r.request.c_str(), r.request.length()))
+  if (!Net::send(conn, r.request.c_str(), r.request.length()))
     return false;
 
   // Recv answer
@@ -161,7 +161,7 @@ bool download(TDownloadTask* dt) {
   while( true ) {
     // Save downloaded chunk in a tmp buffer
     uint8_t buf[8192];
-    int bytes_recv = conn.recvUpTo(buf, sizeof(buf));
+    int bytes_recv = Net::recvUpTo(conn, buf, sizeof(buf));
     if (bytes_recv > 0) {
       dbg("Recv %ld bytes for %s\n", bytes_recv, dt->uri);
       // Let the answer parse the buffer
@@ -181,7 +181,7 @@ bool download(TDownloadTask* dt) {
   dt->ts_end = now();
   dt->time_task = dt->ts_end - dt->ts_start;
 
-  conn.close();
+  Net::close(conn);
 
   return true;
 }
