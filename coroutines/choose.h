@@ -6,11 +6,11 @@ namespace Coroutines {
   namespace internal {
 
     template< typename T >
-    struct ifCanPullDef {
+    struct ifCanReadFromChannel {
       TTypedChannel<T>             channel = 0;
       T                            obj;                 // Temporary storage to hold the recv data
       std::function<void(T& obj)>  cb;
-      ifCanPullDef(TTypedChannel<T> new_channel, std::function< void(T) >&& new_cb)
+      ifCanReadFromChannel(TTypedChannel<T> new_channel, std::function< void(T) >&& new_cb)
         : channel(new_channel)
         , cb(new_cb)
       { }
@@ -30,8 +30,8 @@ namespace Coroutines {
 
   // Helper function to deduce the arguments in a fn, not as the ctor args
   template< typename T, typename TFn >
-  internal::ifCanPullDef<T> ifCanRead(TTypedChannel<T> chan, TFn&& new_cb) {
-    return internal::ifCanPullDef<T>(chan, new_cb);
+  internal::ifCanReadFromChannel<T> ifCanRead(TTypedChannel<T> chan, TFn&& new_cb) {
+    return internal::ifCanReadFromChannel<T>(chan, new_cb);
   }
 
   // -------------------------------------------------------------
@@ -53,6 +53,54 @@ namespace Coroutines {
     }
   };
 
+  // -------------------------------------------------------------
+  // Check if we can read from a socket
+  namespace internal {
+    struct ifCanReadFromSocket {
+      Net::TSocket                      sock;
+      std::function<void(Net::TSocket)> cb;
+      ifCanReadFromSocket(Net::TSocket new_sock, std::function< void(Net::TSocket) >&& new_cb)
+        : sock(new_sock)
+        , cb(new_cb)
+      { }
+      void declareEvent(TWatchedEvent* we) {
+        *we = canRead(sock);
+      }
+      bool run() {
+        cb(sock);
+        return true;
+      }
+    };
+  }
+
+  // Helper function 
+  template< typename TFn >
+  internal::ifCanReadFromSocket ifCanRead(Net::TSocket sock, TFn&& new_cb) {
+    return internal::ifCanReadFromSocket(sock, new_cb);
+  }
+
+  // Check if a timer channel generates an event
+  struct ifTimer {
+    TTimeHandle                     handle;
+    std::function<void(TTimeStamp)> cb;
+    ifTimer(TTimeHandle new_handle, std::function< void(TTimeStamp ts) >&& new_cb)
+      : handle(new_handle)
+      , cb(new_cb)
+    { }
+    void declareEvent(TWatchedEvent* we) {
+      *we = handle.timeForNextEvent();
+    }
+    bool run() {
+      TTimeStamp ts;
+      if (ts << handle) {
+        cb(ts);
+        return true;
+      }
+      return false;
+    }
+  };
+
+  // -----------------------------------------------------------------------------
   // Hide these templates from the user inside a internal namespace
   namespace internal {
 
@@ -78,53 +126,6 @@ namespace Coroutines {
     }
 
   }
-
-  // -------------------------------------------------------------
-  // Check if we can read from a socket
-  namespace internal {
-    struct ifCanReadDef {
-      Net::TSocket                      sock;
-      std::function<void(Net::TSocket)> cb;
-      ifCanReadDef(Net::TSocket new_sock, std::function< void(Net::TSocket) >&& new_cb)
-        : sock(new_sock)
-        , cb(new_cb)
-      { }
-      void declareEvent(TWatchedEvent* we) {
-        *we = canRead(sock);
-      }
-      bool run() {
-        cb(sock);
-        return true;
-      }
-    };
-  }
-
-  // Helper function 
-  template< typename TFn >
-  internal::ifCanReadDef ifCanRead(Net::TSocket sock, TFn&& new_cb) {
-    return internal::ifCanReadDef(sock, new_cb);
-  }
-
-  // Check if a timer channel generates an event
-  struct ifTimer {
-    TTimeHandle                     handle;
-    std::function<void(TTimeStamp)> cb;
-    ifTimer(TTimeHandle new_handle, std::function< void(TTimeStamp ts) >&& new_cb)
-      : handle(new_handle)
-      , cb(new_cb)
-    { }
-    void declareEvent(TWatchedEvent* we) {
-      *we = handle.timeForNextEvent();
-    }
-    bool run() {
-      TTimeStamp ts;
-      if (ts << handle) {
-        cb(ts);
-        return true;
-      }
-      return false;
-    }
-  };
 
   // -----------------------------------------------------------------------------
   // Templatized fn to deal with multiple args
