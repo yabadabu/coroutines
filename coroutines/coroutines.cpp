@@ -29,7 +29,6 @@ namespace Coroutines {
       enum eState {
         UNINITIALIZED
       , RUNNING
-      , WAITING_FOR_CONDITION
       , WAITING_FOR_EVENT
       , FREE
       };
@@ -38,7 +37,6 @@ namespace Coroutines {
       THandle                   this_handle;
 
       // Wait
-      TWaitConditionFn          must_wait;
       TList                     waiting_for_me;
       TWatchedEvent*            event_waking_me_up = nullptr;      // Which event took us from the WAITING_FOR_EVENT
       
@@ -395,26 +393,16 @@ namespace Coroutines {
   
   // --------------------------
   void wait(TWaitConditionFn fn) {
-    // If the condition does not apply now, don't wait
-    if (!fn())
-      return;
-    // We must be a valid co
     auto co = internal::byHandle(current());
     assert(co);
-    co->state = internal::TCoro::WAITING_FOR_CONDITION;
-    co->must_wait = fn;
-    yield();
+    assert( co->state = internal::TCoro::RUNNING );
+    // If the condition does not apply now, don't wait
+    while (fn()) {
+      yield();
+    }
   }
 
-  void wait(TEventID evt) {
-    TWatchedEvent we(evt);
-    wait(&we, 1);
-  }
-
-  // Wait for another coroutine to finish
-  // wait while h is a coroutine handle
-  void wait(THandle h) {
-    TWatchedEvent we(h);
+  void wait(TWatchedEvent we) {
     wait(&we, 1);
   }
 
@@ -654,19 +642,11 @@ namespace Coroutines {
       if (co->state == TCoro::FREE)
         continue;
 
-      if (co->state == TCoro::WAITING_FOR_EVENT) {
+      else if (co->state == TCoro::WAITING_FOR_EVENT) {
         ++nactives;
         continue;
       }
 
-      // The 'waiting for condition' must be checked on each try/run
-      if (co->state == TCoro::WAITING_FOR_CONDITION) {
-        if (co->must_wait()) {
-          ++nactives;
-          continue;
-        }
-        co->state = TCoro::RUNNING;
-      }
       else {
         assert(co->state == TCoro::RUNNING);
       }
@@ -674,7 +654,6 @@ namespace Coroutines {
       co->resume();
 
       if ( co->state == TCoro::RUNNING 
-        || co->state == TCoro::WAITING_FOR_CONDITION 
         || co->state == TCoro::WAITING_FOR_EVENT       // If by resuming we become WaitingForEvent, we are in fact an active co
         )
         ++nactives;

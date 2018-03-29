@@ -44,7 +44,7 @@ void test_wait_time() {
   }
   auto elapsed = tm.elapsed();
   dbg("test_wait_time expected to finish in %ld msecs, and finished in %ld...\n", Time::asMilliSeconds( 5 * Time::Second ), Time::asMilliSeconds( elapsed ) );
-  assert( abs( Time::asMilliSeconds( elapsed - ( 5 * Time::Second ) ) ) < 5 );
+  assert( abs( Time::asMilliSeconds( elapsed - ( 5 * Time::Second ) ) ) < 10 );
 }
 
 // -----------------------------------------------------------
@@ -63,8 +63,8 @@ void test_wait_all() {
     });
   }
   TTimeDelta elapsed = tm.elapsed();
-  dbg("waitAll expected to finish in %d msecs, and finished in %d...\n", 2500 * Time::MilliSecond, elapsed );
-  assert( abs( Time::asMilliSeconds( elapsed - 2500 * Time::MilliSecond) ) < 5 );
+  dbg("waitAll expected to finish in %d msecs, and finished in %d...\n", 2500, Time::asMilliSeconds( elapsed ));
+  assert( abs( Time::asMilliSeconds( elapsed - 2500 * Time::MilliSecond) ) < 12 );
 }
 
 // ---------------------------------------------------------
@@ -81,7 +81,7 @@ void test_wait_keys() {
     dbg("At coKeys. Now press the key 'B'\n");
     waitKey('B');
     dbg("At coKeys. well done\n");
-  });
+  }); 
 }
 
 // ---------------------------------------------------------
@@ -191,7 +191,7 @@ void sample_wait() {
   test_user_events();
   test_yield();
   test_wait_time();
-  //test_wait_all();
-  //test_wait_keys();
-  //test_wait_2_coroutines_with_timeout();
+  test_wait_all();
+  test_wait_keys();
+  test_wait_2_coroutines_with_timeout();
 }
