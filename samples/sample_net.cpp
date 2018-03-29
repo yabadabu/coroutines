@@ -17,7 +17,8 @@ void echoClient() {
   Net::TSocket client = Net::connect(addr, port);
   if (!client)
     return;
-  Net::send(client, "hello");
+  // Will send 5+1 bytes
+  client << "Hello";
   char buf[256];
   int nbytes = Net::recvUpTo(client, buf, sizeof(buf));
   dbg("Server answer is: %s\n", buf);
@@ -82,11 +83,11 @@ static void runServer(int max_clients) {
       int n = 0;
       while (true) {
         dbg("Server: Waiting for client to send an int\n");
-        if (!Net::recv(client, n))
+        if(!(n << client))
           break;
         n++;
         dbg("Server: Sending answer %d to client\n", n);
-        if (!Net::send(client, n))
+        if(!(client << n))
           break;
       }
       dbg("Server: Client has been disconnected. Loops=%d\n", n);
@@ -120,12 +121,12 @@ static void runClient(int max_id) {
   int id = 0;
   while (id < max_id) {
     dbg("Client: Sending %d / %d\n", id, max_id);
-    if (!Net::send(client, id)) {
+    if (!(client << id)) {
       dbg("Client: Send failed\n");
       return;
     }
     dbg("Client: Receiving...\n");
-    if (!Net::recv(client, id)) {
+    if (!(id << client)) {
       dbg("Client: Recv failed\n");
       return;
     }
@@ -238,7 +239,7 @@ void sample_net_choose() {
 
 // ----------------------------------------------------------
 void sample_net() {
-  //sample_net_echo();
+  sample_net_echo();
   //sample_net_multiples();
   sample_net_choose();
 }

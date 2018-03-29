@@ -18,7 +18,7 @@ namespace Coroutines {
       TOSSocket s = invalid;
       TSocket() = default;
       TSocket(TOSSocket ns) : s(ns) {};
-      operator bool() const {
+      explicit operator bool() const {
         return s != invalid;
       }
     };
@@ -47,12 +47,12 @@ namespace Coroutines {
     int  recvUpTo(TSocket s, void* dest_buffer, size_t max_bytes_to_read);
 
     template< typename T >
-    bool recv(TSocket s, T& obj) {
+    bool operator<<(TSocket s, T& obj) {
       return recv(s, &obj, sizeof(T));
     }
 
     template< typename T >
-    bool send(TSocket s, const T& obj) {
+    bool operator<<(TSocket s, const T& obj) {
       return send(s, &obj, sizeof(T));
     }
 
