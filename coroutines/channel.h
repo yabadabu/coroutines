@@ -41,9 +41,6 @@ namespace Coroutines {
       virtual bool empty() const { return true; }
       virtual bool full() const { return false; }
 
-      virtual bool pull(void* obj, size_t nbytes) { return false; }
-      virtual bool push(const void* obj, size_t nbytes) { return false; }
-  
       static TBaseChan* findChannelByHandle(TChanHandle h);
     };
 
@@ -151,8 +148,6 @@ namespace Coroutines {
   };
 
   // -------------------------------------------------------------
-  // Read discarting the data. 
-  bool pull(TChanHandle cid);
   
   // Closes channel
   bool close(TChanHandle cid);
@@ -188,6 +183,9 @@ namespace Coroutines {
   bool operator<<(TTimeStamp& value, TTimeHandle cid);
   TTimeHandle every(TTimeDelta interval_time);
   TTimeHandle after(TTimeDelta interval_time);
+
+  // Read discarting the data. 
+  bool pull(TTimeHandle cid);
 
 }
 

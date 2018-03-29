@@ -59,15 +59,6 @@ namespace Coroutines {
   }
 
   // -------------------------------------------------------------
-  // Specially for the time channels
-  bool pull(TChanHandle cid) {
-    auto c = internal::TBaseChan::findChannelByHandle(cid);
-    if (!c || c->closed())
-      return false;
-    return c->pull(nullptr, 0);
-  }
-
-  // -------------------------------------------------------------
   // -------------------------------------------------------------
   // -------------------------------------------------------------
   struct TTimeChan : public internal::TBaseChan {
@@ -88,7 +79,8 @@ namespace Coroutines {
       , interval(amount_of_time_between_events)
       , is_periodic(new_is_periodic)
     { }
-    bool pull(void* obj, size_t nbytes) override {
+
+    bool pullTime(TTimeStamp& ts) {
 
       // Requesting use in a closed channel?
       if (closed())
@@ -115,10 +107,7 @@ namespace Coroutines {
       if (idx == -1)
         return false;
 
-      if (obj) {
-        assert(nbytes == sizeof(TTimeStamp));
-        *(TTimeStamp*)obj = Time::now();
-      }
+      ts = Time::now();
 
       prepareNext();
 
@@ -141,7 +130,9 @@ namespace Coroutines {
     auto c = internal::TBaseChan::findChannelByHandle(cid);
     if (!c || c->closed())
       return false;
-    return c->pull(&value, sizeof(value));
+    assert(cid.class_id == eChannelType::CT_TIMER);
+    TTimeChan* tc = (TTimeChan*)c;
+    return tc->pullTime(value);
   }
 
   TTimeDelta TTimeHandle::timeForNextEvent() const {
@@ -153,12 +144,10 @@ namespace Coroutines {
     return tc->next - Time::now();
   }
 
-  // -------------------------------------------------------
-  // -------------------------------------------------------
-  // -------------------------------------------------------
-  //class TIOChan : public internal::TBaseChan {
-
-  //};
+  bool pull(TTimeHandle h) {
+    TTimeStamp ts;
+    return (ts << h);
+  }
 
   // -------------------------------------------------------
   // -------------------------------------------------------
