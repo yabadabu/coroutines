@@ -6,9 +6,22 @@
 #include "sample.h"
 
 using namespace Coroutines;
+using namespace Coroutines::Time;
 using Coroutines::wait;
 
 int port = 8081;
+
+void echoClient() {
+  const char* addr = "127.0.0.1";
+  Net::TSocket client = Net::connect(addr, port);
+  if (!client)
+    return;
+  Net::send(client, "hello");
+  char buf[256];
+  int nbytes = Net::recvUpTo(client, buf, sizeof(buf));
+  dbg("Server answer is: %s\n", buf);
+  Net::close(client);
+}
 
 // ----------------------------------------------------------
 void sample_net_echo() {
@@ -30,20 +43,7 @@ void sample_net_echo() {
     Net::close(server);
   });
 
-  auto co_c = start([]() {
-    // Fake pause
-    Time::sleep(10 * Time::MilliSecond);
-    const char* addr = "127.0.0.1";
-    Net::TSocket client = Net::connect(addr, port);
-    if (!client)
-      return;
-    Net::send(client, "hello");
-    char buf[256];
-    int nbytes = Net::recvUpTo(client, buf, sizeof(buf));
-    dbg("Server answer is: %s\n", buf);
-    Net::close(client);
-  });
-
+  auto co_c = start(echoClient);
 }
 
 // ---------------------------------------------------------
@@ -51,7 +51,7 @@ static void runServer(int max_clients) {
 
   // Wait some time before starting the server
   dbg("Server: Doing a small pause of 50ms\n");
-  //Time::sleep(50 * Time::MilliSecond);
+  Time::sleep(50 * Time::MilliSecond);
   dbg("Server: Pause complete. listen..\n");
 
   auto server = Net::listen("127.0.0.1", port, AF_INET);
@@ -71,6 +71,8 @@ static void runServer(int max_clients) {
     }
 
     dbg("Server: New client connected\n");
+    // Just be sure not to use start([&](){ ... } as 
+    // the ref value will be garbage in the next while loop
     auto co_client = start([client]() {
       int n = 0;
       while (true) {
@@ -135,8 +137,106 @@ void sample_net_multiples() {
   auto co_c2 = start([]() { runClient(2); });
 }
 
+
+// -------------------------------------------------------------
+struct ifCanRead {
+  Net::TSocket                 sock;
+  std::function<void(void)>    cb;
+  ifCanRead(Net::TSocket new_sock, std::function< void() >&& new_cb)
+    : sock(new_sock)
+    , cb(new_cb)
+  { }
+  void declareEvent(TWatchedEvent* we) {
+    *we = TWatchedEvent(sock.s, EVT_SOCKET_IO_CAN_READ);
+  }
+  bool run() {
+    cb();
+    return true;
+  }
+};
+
+
+// Helper function to deduce the arguments in a fn, not as the ctor args
+struct ifTimer {
+  TTimeHandle                     handle;
+  std::function<void(TTimeStamp)> cb;
+  ifTimer(TTimeHandle new_handle, std::function< void(TTimeStamp ts) >&& new_cb)
+    : handle(new_handle)
+    , cb(new_cb)
+  { }
+  void declareEvent(TWatchedEvent* we) {
+    *we = TWatchedEvent( handle.timeForNextEvent() );
+  }
+  bool run() {
+    TTimeStamp ts;
+    if (ts << handle) {
+      cb(ts);
+      return true;
+    }
+    return false;
+  }
+}; 
+
+// ----------------------------------------------------------
+void sample_net_choose() {
+  TSimpleDemo demo("sample_net_choose");
+  
+  StrChan chan = StrChan::create(5);
+
+  auto co_s = start([chan]() {
+    auto server = Net::listen("127.0.0.1", port, AF_INET);
+    if (!server)
+      return;
+
+    auto ticker = every(Second);
+
+    while (true) {
+
+      choose(
+        ifCanRead(server, [server]() {
+          auto client = Net::accept(server);
+          if (!client)
+            return;
+          char buf[256];
+          int nbytes = Net::recvUpTo(client, buf, sizeof(buf));
+          Net::send(client, buf, nbytes);
+          Net::close(client);
+        }),
+        ifCanPull(chan, [](const char* v) {
+          dbg("Channel %s\n", v);
+        }),
+        ifTimer(ticker, [](TTimeStamp ts) {
+          dbg("Ticker...\n");
+        })
+         
+        //, ifTimeout(950 * Time::MilliSecond, []() {
+        //  dbg("Server tick...\n");
+        //})
+      );
+
+    }
+    Net::close(server);
+  });
+  
+  auto co_c = start([] {
+    Time::sleep(4500 * Time::MilliSecond);
+    echoClient();
+  });
+
+  const char* names[] = { "john","peter","foo","bar","nancy" };
+  auto co_d = start([names, chan] {
+    for (int i = 0; i < 5; ++i) {
+      sleep(750 * Time::MilliSecond);
+      chan << names[i];
+    }
+    dbg("All names pushed\n");
+  });
+
+}
+
 // ----------------------------------------------------------
 void sample_net() {
   //sample_net_echo();
-  sample_net_multiples();
+  //sample_net_multiples();
+  sample_net_choose();
 }

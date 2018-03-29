@@ -51,5 +51,6 @@ namespace Coroutines {
 #include "events.h"
 #include "wait.h"
 #include "channel.h"
+#include "choose.h"
 
 #endif

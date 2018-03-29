@@ -1,4 +1,3 @@
-#include "channel.h"
 #include "coroutines.h"
 
 namespace Coroutines {
@@ -71,7 +70,7 @@ namespace Coroutines {
   // -------------------------------------------------------------
   // -------------------------------------------------------------
   // -------------------------------------------------------------
-  class TTimeChan : public internal::TBaseChan {
+  struct TTimeChan : public internal::TBaseChan {
     TTimeStamp next;
     TTimeDelta interval;
     bool       is_periodic = false;
@@ -80,10 +79,10 @@ namespace Coroutines {
         close();
         return;
       }
-      // We could improve accuracy...
-      next = Time::now() + interval;
+      // In case more than 1 interval has passed since last event
+      auto n = 1 + (Time::now() - next) / interval;
+      next = next + n * interval;
     }
-  public:
     TTimeChan(TTimeDelta amount_of_time_between_events, bool new_is_periodic)
       : next(Time::now() + amount_of_time_between_events)
       , interval(amount_of_time_between_events)
@@ -128,21 +127,30 @@ namespace Coroutines {
     }
   };
 
-  TChanHandle every(TTimeDelta interval_time) {
+  TTimeHandle every(TTimeDelta interval_time) {
     TTimeChan* c = new TTimeChan(interval_time, true);
     return internal::registerChannel(c, eChannelType::CT_TIMER);
   }
 
-  TChanHandle after(TTimeDelta interval_time) {
+  TTimeHandle after(TTimeDelta interval_time) {
     TTimeChan* c = new TTimeChan(interval_time, false);
     return internal::registerChannel(c, eChannelType::CT_TIMER);
   }
 
-  bool operator<<(TTimeStamp& value, TChanHandle cid) {
+  bool operator<<(TTimeStamp& value, TTimeHandle cid) {
     auto c = internal::TBaseChan::findChannelByHandle(cid);
     if (!c || c->closed())
       return false;
     return c->pull(&value, sizeof(value));
+  }
+
+  TTimeDelta TTimeHandle::timeForNextEvent() const {
+    auto c = internal::TBaseChan::findChannelByHandle(*this);
+    if (!c || c->closed())
+      return TTimeDelta::zero();
+    assert(class_id == eChannelType::CT_TIMER);
+    TTimeChan* tc = (TTimeChan*) c;
+    return tc->next - Time::now();
   }
 
   // -------------------------------------------------------

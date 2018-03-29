@@ -2,13 +2,11 @@
 #include <cstdio>
 #include <vector>
 #include "sample.h"
-#include "coroutines/choose.h"
 
 using namespace Coroutines;
 using Coroutines::wait;
 
 // -------------------------------------------------------------
-typedef TTypedChannel<const char*> StrChan;
 typedef TTypedChannel<int> IntChan;
 
 StrChan boring(const char* label, TTimeDelta min_time);

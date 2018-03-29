@@ -195,9 +195,13 @@ namespace Coroutines {
   }
 
   // -------------------------------------------------------------
-  bool operator<<(TTimeStamp& value, TChanHandle cid);
-  TChanHandle every(TTimeDelta interval_time);
-  TChanHandle after(TTimeDelta interval_time);
+  struct TTimeHandle : public TChanHandle {
+    TTimeHandle(const TChanHandle& h) : TChanHandle(h) {}
+    TTimeDelta timeForNextEvent() const;
+  };
+  bool operator<<(TTimeStamp& value, TTimeHandle cid);
+  TTimeHandle every(TTimeDelta interval_time);
+  TTimeHandle after(TTimeDelta interval_time);
 
 }
 

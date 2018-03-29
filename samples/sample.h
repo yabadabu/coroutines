@@ -38,3 +38,5 @@ struct TSimpleDemo {
   }
 };
 
+typedef Coroutines::TTypedChannel<const char*> StrChan;
+
