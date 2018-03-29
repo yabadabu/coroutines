@@ -53,6 +53,12 @@ int main(int argc, char** argv) {
   int iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
 #endif
 
+  dbg("sizeof(TWatchedEvent) = %ld\n", sizeof(TWatchedEvent));
+  dbg("sizeof(THandle) = %ld\n", sizeof(THandle));
+  dbg("sizeof(StrChan) = %ld\n", sizeof(StrChan));
+  dbg("sizeof(TTimeStamp) = %ld\n", sizeof(TTimeStamp));
+  
+
   boot_time = Time::now();
   //sample_wait();
   //sample_channels();
