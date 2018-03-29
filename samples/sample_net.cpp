@@ -11,6 +11,7 @@ using Coroutines::wait;
 
 int port = 8081;
 
+// ----------------------------------------------------------
 void echoClient() {
   const char* addr = "127.0.0.1";
   Net::TSocket client = Net::connect(addr, port);
@@ -23,6 +24,16 @@ void echoClient() {
   Net::close(client);
 }
 
+void echoServer(Net::TSocket server) {
+  auto client = Net::accept(server);
+  if (!client)
+    return;
+  char buf[256];
+  int nbytes = Net::recvUpTo(client, buf, sizeof(buf));
+  Net::send(client, buf, nbytes);
+  Net::close(client);
+}
+
 // ----------------------------------------------------------
 void sample_net_echo() {
   TSimpleDemo demo("sample_net_echo");
@@ -31,13 +42,7 @@ void sample_net_echo() {
     if (!server)
       return;
     while (true) {
-      auto client = Net::accept(server);
-      if (!client)
-        break;
-      char buf[256];
-      int nbytes = Net::recvUpTo(client, buf, sizeof(buf));
-      Net::send(client, buf, nbytes);
-      Net::close(client);
+      echoServer(server);
       break;
     }
     Net::close(server);
@@ -141,8 +146,8 @@ void sample_net_multiples() {
 // -------------------------------------------------------------
 struct ifCanRead {
   Net::TSocket                 sock;
-  std::function<void(void)>    cb;
-  ifCanRead(Net::TSocket new_sock, std::function< void() >&& new_cb)
+  std::function<void(Net::TSocket)>    cb;
+  ifCanRead(Net::TSocket new_sock, std::function< void(Net::TSocket) >&& new_cb)
     : sock(new_sock)
     , cb(new_cb)
   { }
@@ -150,7 +155,7 @@ struct ifCanRead {
     *we = TWatchedEvent(sock.s, EVT_SOCKET_IO_CAN_READ);
   }
   bool run() {
-    cb();
+    cb(sock);
     return true;
   }
 };
@@ -181,7 +186,7 @@ struct ifTimer {
 void sample_net_choose() {
   TSimpleDemo demo("sample_net_choose");
   
-  StrChan chan = StrChan::create(5);
+  StrChan chan = StrChan::create();
 
   auto co_s = start([chan]() {
     auto server = Net::listen("127.0.0.1", port, AF_INET);
@@ -192,15 +197,11 @@ void sample_net_choose() {
 
     while (true) {
 
-      choose(
-        ifCanRead(server, [server]() {
-          auto client = Net::accept(server);
-          if (!client)
-            return;
-          char buf[256];
-          int nbytes = Net::recvUpTo(client, buf, sizeof(buf));
-          Net::send(client, buf, nbytes);
-          Net::close(client);
+      int idx = choose(
+        ifCanRead(server, [](Net::TSocket server) {
+          // This could block inside...
+          // Start a new coroutine if you don't want 
+          echoServer(server);
         }),
         ifCanPull(chan, [](const char* v) {
           dbg("Channel %s\n", v);
@@ -208,12 +209,12 @@ void sample_net_choose() {
         ifTimer(ticker, [](TTimeStamp ts) {
           dbg("Ticker...\n");
         })
-         
         //, ifTimeout(950 * Time::MilliSecond, []() {
         //  dbg("Server tick...\n");
         //})
       );
-
+      if (idx == -1)
+        break;
     }
     Net::close(server);
   });
@@ -223,12 +224,13 @@ void sample_net_choose() {
     echoClient();
   });
 
-  const char* names[] = { "john","peter","foo","bar","nancy" };
-  auto co_d = start([names, chan] {
-    for (int i = 0; i < 5; ++i) {
+  auto co_d = start([chan] {
+    const char* names[] = { "john","peter","foo","bar" }; // , "laia", "luke" };
+    for (auto name : names) {
       sleep(750 * Time::MilliSecond);
-      chan << names[i];
+      chan << name;
     }
+    close(chan);
     dbg("All names pushed\n");
   });
 
