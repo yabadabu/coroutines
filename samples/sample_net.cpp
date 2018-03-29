@@ -166,7 +166,7 @@ void sample_net_choose() {
           // Start a new coroutine if you don't want 
           echoServer(server);
         }),
-        ifCanPull(chan, [](const char* v) {
+        ifCanRead(chan, [](const char* v) {
           dbg("Channel %s\n", v);
         }),
         ifTimer(ticker, [](TTimeStamp ts) {

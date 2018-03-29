@@ -30,7 +30,7 @@ namespace Coroutines {
 
   // Helper function to deduce the arguments in a fn, not as the ctor args
   template< typename T, typename TFn >
-  internal::ifCanPullDef<T> ifCanPull(TTypedChannel<T> chan, TFn&& new_cb) {
+  internal::ifCanPullDef<T> ifCanRead(TTypedChannel<T> chan, TFn&& new_cb) {
     return internal::ifCanPullDef<T>(chan, new_cb);
   }
 
@@ -71,7 +71,7 @@ namespace Coroutines {
 
     template< typename A, typename ...Args >
     bool runOption(int idx, int the_option, A& a, Args... args) {
-      return 
+      return
         (idx == the_option)
         ? a.run()
         : runOption(idx + 1, the_option, args...);
@@ -81,21 +81,29 @@ namespace Coroutines {
 
   // -------------------------------------------------------------
   // Check if we can read from a socket
-  struct ifCanRead {
-    Net::TSocket                 sock;
-    std::function<void(Net::TSocket)>    cb;
-    ifCanRead(Net::TSocket new_sock, std::function< void(Net::TSocket) >&& new_cb)
-      : sock(new_sock)
-      , cb(new_cb)
-    { }
-    void declareEvent(TWatchedEvent* we) {
-      *we = canRead(sock);
-    }
-    bool run() {
-      cb(sock);
-      return true;
-    }
-  };
+  namespace internal {
+    struct ifCanReadDef {
+      Net::TSocket                      sock;
+      std::function<void(Net::TSocket)> cb;
+      ifCanReadDef(Net::TSocket new_sock, std::function< void(Net::TSocket) >&& new_cb)
+        : sock(new_sock)
+        , cb(new_cb)
+      { }
+      void declareEvent(TWatchedEvent* we) {
+        *we = canRead(sock);
+      }
+      bool run() {
+        cb(sock);
+        return true;
+      }
+    };
+  }
+
+  // Helper function 
+  template< typename TFn >
+  internal::ifCanReadDef ifCanRead(Net::TSocket sock, TFn&& new_cb) {
+    return internal::ifCanReadDef(sock, new_cb);
+  }
 
   // Check if a timer channel generates an event
   struct ifTimer {

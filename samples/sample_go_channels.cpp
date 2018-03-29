@@ -44,10 +44,10 @@ void test_new_choose() {
   auto coA = start([c1,c2,f]() {
     while (true) {
       int n = choose(
-        ifCanPull(c1, [f](const char* msg) {
+        ifCanRead(c1, [f](const char* msg) {
           f << msg;
         }),
-        ifCanPull(c2, [f](const char* msg) {
+        ifCanRead(c2, [f](const char* msg) {
           f << msg;
         }),
         ifTimeout(1500 * Time::MilliSecond, []() {

@@ -197,10 +197,10 @@ StrChan fanInChoose(StrChan a, StrChan b) {
       
       // Wait until we can 'read' from any of those channels
       int n = choose(
-        ifCanPull(a, [c](const char* msg) {
+        ifCanRead(a, [c](const char* msg) {
           c << msg;
         }),
-        ifCanPull(b, [c](const char* msg) {
+        ifCanRead(b, [c](const char* msg) {
           c << msg;
         }),
         ifTimeout(400 * Time::MilliSecond, []() {
