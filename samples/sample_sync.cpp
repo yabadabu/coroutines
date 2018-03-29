@@ -198,15 +198,15 @@ void test_download_in_parallel() {
   // Generate the requests from another co with some in the middle waits
   auto co_producer = start([ch_requests, &all_queued, &ndownloads]() {
     auto d1 = new TDownloadTask("www.lavanguardia.com");
-    push(ch_requests, d1); ++ndownloads;
+    ch_requests << d1; ++ndownloads;
     wait(nullptr, 0, 100 * Time::MilliSecond);
-    d1 = new TDownloadTask("blog.selfshadow.com");
-    push(ch_requests, d1); ++ndownloads;
+    ch_requests << new TDownloadTask("blog.selfshadow.com");
+    ++ndownloads;
     d1 = new TDownloadTask("www.humus.name/index.php?page=News");
-    push(ch_requests, d1); ++ndownloads;
+    ch_requests << d1; ++ndownloads;
     wait(nullptr, 0, 100 * Time::MilliSecond);
     d1 = new TDownloadTask("www.humus.name/index.php?page=3D");
-    push(ch_requests, d1); ++ndownloads;
+    ch_requests << d1; ++ndownloads;
     all_queued = true;
   });
 
@@ -233,7 +233,7 @@ void test_download_in_parallel() {
     size_t ntasks = 0;
     size_t total_bytes = 0;
     TDownloadTask* dt = nullptr;
-    while ((ntasks < ndownloads || !all_queued ) && pull(ch_acc, dt)) {
+    while ((ntasks < ndownloads || !all_queued ) && (dt << ch_acc)) {
       assert(dt);
 
       // Accumulate some total bytes and max time

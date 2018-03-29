@@ -18,7 +18,7 @@ namespace Coroutines {
         *we = TWatchedEvent(channel, eEventType::EVT_CHANNEL_CAN_PULL);
       }
       bool run() {
-        if (pull(channel, obj)) {
+        if (obj << channel) {
           cb(obj);
           return true;
         }

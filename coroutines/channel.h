@@ -151,29 +151,6 @@ namespace Coroutines {
   };
 
   // -------------------------------------------------------------
-  template< typename T>
-  bool push(TTypedChannel<T> cid, T& obj) {
-
-    auto c = internal::TBaseChan::findChannelByHandle(cid);
-    if (!c || c->closed())
-      return false;
-
-    auto tc = (internal::TMemChan<T> *)c;
-    return tc->pushObj(obj);
-  }
-
-  // -------------------------------------------------------------
-  template< typename T>
-  bool pull(TTypedChannel<T> cid, T& obj) {
-
-    auto c = internal::TBaseChan::findChannelByHandle(cid);
-    if (!c || (c->closed() && c->empty()))
-      return false;
-    auto tc = (internal::TMemChan<T> *)c;
-    return tc->pullObj(obj);
-  }
-
-  // -------------------------------------------------------------
   // Read discarting the data. 
   bool pull(TChanHandle cid);
   
@@ -185,13 +162,22 @@ namespace Coroutines {
 
   // -------------------------------------------------------------
   template< typename T >
-  bool operator<<(T& p, TTypedChannel<T> c) {
-    return pull(c, p);
+  bool operator<<(T& obj, TTypedChannel<T> cid) {
+    auto c = internal::TBaseChan::findChannelByHandle(cid);
+    if (!c || (c->closed() && c->empty()))
+      return false;
+    auto tc = (internal::TMemChan<T> *)c;
+    return tc->pullObj(obj);
   }
 
   template< typename T >
-  bool operator<<(TTypedChannel<T> c, T p) {
-    return push(c, p);
+  bool operator<<(TTypedChannel<T> cid, T obj) {
+    auto c = internal::TBaseChan::findChannelByHandle(cid);
+    if (!c || c->closed())
+      return false;
+
+    auto tc = (internal::TMemChan<T> *)c;
+    return tc->pushObj(obj);
   }
 
   // -------------------------------------------------------------

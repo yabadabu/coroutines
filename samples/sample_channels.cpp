@@ -24,7 +24,7 @@ void test_channels() {
       int data = 0;
       // if there is nothing it will block us until someone pushes something
       // or the channel is closed.
-      if (!pull(ch1, data))
+      if (!(data << ch1))
         break;
       dbg("co1 has pulled %d\n", data);
     }
@@ -69,7 +69,7 @@ void test_channels_send_from_main() {
     dbg("co1 begin\n");
     while (true) {
       int data = 0;
-      if (!pull(ch1,data))
+      if (!(data << ch1))
         break;
       dbg("co1 has pulled %d from %p\n", data, ch1);
     }
@@ -79,8 +79,8 @@ void test_channels_send_from_main() {
 
   int v = 100;
   dbg("Main pushes 100 twice and then closes\n");
-  push(ch1, v);
-  push(ch1, v);
+  ch1 << v;
+  ch1 << v;
   close(ch1);
 }
 

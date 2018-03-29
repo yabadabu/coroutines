@@ -84,7 +84,7 @@ THandle readChannel(StrChan c, int n) {
   return start([c, n]() {
     for (int i = 0; i < n; ++i) {
       const char* msg = nullptr;
-      if (!pull(c, msg))
+      if (!(c << msg))
         break;
       dbg("%s\n", msg);
     }
@@ -109,9 +109,9 @@ StrChan fanIn(StrChan a, StrChan b) {
   start([c, b]() {
     while (true) {
       const char* msg;
-      if (!pull(b, msg))
+      if (!(msg << b))
         break;
-      push(c, msg);
+      c << msg;
     }
   });
   return c;
