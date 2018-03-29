@@ -15,7 +15,7 @@ namespace Coroutines {
         , cb(new_cb)
       { }
       void declareEvent(TWatchedEvent* we) {
-        *we = TWatchedEvent(channel, eEventType::EVT_CHANNEL_CAN_PULL);
+        *we = canRead(channel);
       }
       bool run() {
         if (obj << channel) {
@@ -42,7 +42,7 @@ namespace Coroutines {
     ifTimeout(TTimeDelta new_delta, std::function< void() >&& new_cb)
       : delta(new_delta)
       , cb(new_cb)
-      , saved_we(TWatchedEvent(delta))
+      , saved_we(delta)
     { }
     void declareEvent(TWatchedEvent* we) {
       *we = saved_we;
@@ -89,7 +89,7 @@ namespace Coroutines {
       , cb(new_cb)
     { }
     void declareEvent(TWatchedEvent* we) {
-      *we = TWatchedEvent(sock.s, EVT_SOCKET_IO_CAN_READ);
+      *we = canRead(sock);
     }
     bool run() {
       cb(sock);
@@ -106,7 +106,7 @@ namespace Coroutines {
       , cb(new_cb)
     { }
     void declareEvent(TWatchedEvent* we) {
-      *we = TWatchedEvent(handle.timeForNextEvent());
+      *we = handle.timeForNextEvent();
     }
     bool run() {
       TTimeStamp ts;

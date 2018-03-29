@@ -18,6 +18,7 @@ namespace Coroutines {
       explicit operator bool() const {
         return s != invalid;
       }
+
     };
 
     // Will yield until the connection can be stablished

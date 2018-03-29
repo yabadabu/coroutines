@@ -97,12 +97,12 @@ namespace Coroutines {
       TTimeDelta time_for_event = next - right_now;
 
       TWatchedEvent wes[2];
-      wes[0] = TWatchedEvent(time_for_event);
+      wes[0] = time_for_event;
 
       // We can also exit from the wait IF this channel 
       // becomes 'closed' while we are waiting.
       // The 'close' will trigger this event
-      wes[1] = TWatchedEvent(handle, eEventType::EVT_CHANNEL_CAN_PULL);
+      wes[1] = canRead(handle);
       int idx = wait(wes, 2);
       if (idx == -1)
         return false;
@@ -164,5 +164,9 @@ namespace Coroutines {
     auto c = internal::TBaseChan::findChannelByHandle(cid);
     return c != nullptr;
   }
+
+  // Declared in wait.h
+  TWatchedEvent canRead(TChanHandle c) { return TWatchedEvent(c, eEventType::EVT_CHANNEL_CAN_PULL); }
+  TWatchedEvent canWrite(TChanHandle c) { return TWatchedEvent(c, eEventType::EVT_CHANNEL_CAN_PUSH); }
 
 }

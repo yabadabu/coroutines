@@ -149,9 +149,9 @@ void test_user_events() {
       int n = 0;
       // Register only to the active events
       if (!isEventSet(evt1))
-        we[n++] = TWatchedEvent(evt1);
+        we[n++] = evt1;
       if (!isEventSet(evt2))
-        we[n++] = TWatchedEvent(evt2);
+        we[n++] = evt2;
       if (!n)
         break;
       dbg("B1. Waiting for %d events\n", n);

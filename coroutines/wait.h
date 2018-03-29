@@ -3,18 +3,6 @@
 
 namespace Coroutines {
   
-  enum eEventType {
-    EVT_USER_EVENT = 0
-  , EVT_COROUTINE_ENDS
-  , EVT_TIMEOUT
-  , EVT_SOCKET_IO_CAN_READ
-  , EVT_SOCKET_IO_CAN_WRITE
-  , EVT_CHANNEL_CAN_PUSH
-  , EVT_CHANNEL_CAN_PULL
-  , EVT_INVALID
-  , EVT_TYPES_COUNT
-  };
-
   // --------------------------
   struct TWatchedEvent : public TListItem {
     THandle        owner;         // maps to current()
@@ -76,14 +64,19 @@ namespace Coroutines {
       owner = current();
     }
 
-    TWatchedEvent(SOCKET_ID fd, eEventType evt) {
+    TWatchedEvent(Net::TSocket sock, eEventType evt) {
       assert(evt == EVT_SOCKET_IO_CAN_READ || evt == EVT_SOCKET_IO_CAN_WRITE);
       event_type = evt;
-      io.fd = fd;
+      io.fd = sock.s;
       owner = current();
     }
 
   };
+
+  TWatchedEvent canRead(Net::TSocket s);
+  TWatchedEvent canWrite(Net::TSocket s);
+  TWatchedEvent canRead(TChanHandle c);
+  TWatchedEvent canWrite(TChanHandle c);
 
 // Windows is messing with the max as a macro
 #ifdef max

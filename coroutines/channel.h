@@ -96,10 +96,8 @@ namespace Coroutines {
 
         assert(this);
 
-        while (empty() && !closed()) {
-          TWatchedEvent evt(handle, EVT_CHANNEL_CAN_PULL);
-          wait(&evt, 1);
-        }
+        while (empty() && !closed()) 
+          wait(canRead(handle));
 
         if (empty() && closed())
           return false;
@@ -111,10 +109,8 @@ namespace Coroutines {
 
       bool pushObj( T& obj) {
 
-        while (full() && !closed()) {
-          TWatchedEvent evt(handle, EVT_CHANNEL_CAN_PUSH);
-          wait(&evt, 1);
-        }
+        while (full() && !closed())
+          wait(canWrite(handle));
 
         if (closed())
           return false;
