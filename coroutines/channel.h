@@ -127,12 +127,12 @@ namespace Coroutines {
     };
 
     // --------------------------------------------------------------
-    TChanHandle registerChannel(TBaseChan* c, eChannelType channel_type);
+    TChanHandle registerChannel(TBaseChan* c, TChanHandle::eClassID channel_type);
 
     template< typename T >
     TChanHandle createTypedChannel(size_t max_capacity) {
       auto c = new TMemChan<T>(max_capacity);
-      return registerChannel(c, eChannelType::CT_MEMORY);
+      return registerChannel(c, TChanHandle::eClassID::CT_MEMORY);
     }
 
   }
