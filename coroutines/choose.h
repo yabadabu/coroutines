@@ -38,12 +38,14 @@ namespace Coroutines {
   struct ifTimeout {
     TTimeDelta                   delta;
     std::function<void(void)>    cb;
+    TWatchedEvent                saved_we;
     ifTimeout(TTimeDelta new_delta, std::function< void() >&& new_cb)
       : delta(new_delta)
       , cb(new_cb)
+      , saved_we(TWatchedEvent(delta))
     { }
     void declareEvent(TWatchedEvent* we) {
-      *we = TWatchedEvent(delta);
+      *we = saved_we;
     }
     bool run() {
       cb();
@@ -76,6 +78,45 @@ namespace Coroutines {
     }
 
   }
+
+  // -------------------------------------------------------------
+  // Check if we can read from a socket
+  struct ifCanRead {
+    Net::TSocket                 sock;
+    std::function<void(Net::TSocket)>    cb;
+    ifCanRead(Net::TSocket new_sock, std::function< void(Net::TSocket) >&& new_cb)
+      : sock(new_sock)
+      , cb(new_cb)
+    { }
+    void declareEvent(TWatchedEvent* we) {
+      *we = TWatchedEvent(sock.s, EVT_SOCKET_IO_CAN_READ);
+    }
+    bool run() {
+      cb(sock);
+      return true;
+    }
+  };
+
+  // Check if a timer channel generates an event
+  struct ifTimer {
+    TTimeHandle                     handle;
+    std::function<void(TTimeStamp)> cb;
+    ifTimer(TTimeHandle new_handle, std::function< void(TTimeStamp ts) >&& new_cb)
+      : handle(new_handle)
+      , cb(new_cb)
+    { }
+    void declareEvent(TWatchedEvent* we) {
+      *we = TWatchedEvent(handle.timeForNextEvent());
+    }
+    bool run() {
+      TTimeStamp ts;
+      if (ts << handle) {
+        cb(ts);
+        return true;
+      }
+      return false;
+    }
+  };
 
   // -----------------------------------------------------------------------------
   // Templatized fn to deal with multiple args

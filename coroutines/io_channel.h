@@ -1,9 +1,6 @@
 #ifndef INC_COROUTINE_IO_CHANNEL_H_
 #define INC_COROUTINE_IO_CHANNEL_H_
 
-#include "coroutines.h"
-#include "channel.h"
-
 namespace Coroutines {
 
   namespace Net {

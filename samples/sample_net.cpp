@@ -1,8 +1,3 @@
-#include <cstdarg>
-#include <cstdio>
-#include <vector>
-#include "coroutines/coroutines.h"
-#include "coroutines/io_channel.h"
 #include "sample.h"
 
 using namespace Coroutines;
@@ -144,45 +139,6 @@ void sample_net_multiples() {
 }
 
 
-// -------------------------------------------------------------
-struct ifCanRead {
-  Net::TSocket                 sock;
-  std::function<void(Net::TSocket)>    cb;
-  ifCanRead(Net::TSocket new_sock, std::function< void(Net::TSocket) >&& new_cb)
-    : sock(new_sock)
-    , cb(new_cb)
-  { }
-  void declareEvent(TWatchedEvent* we) {
-    *we = TWatchedEvent(sock.s, EVT_SOCKET_IO_CAN_READ);
-  }
-  bool run() {
-    cb(sock);
-    return true;
-  }
-};
-
-
-// Helper function to deduce the arguments in a fn, not as the ctor args
-struct ifTimer {
-  TTimeHandle                     handle;
-  std::function<void(TTimeStamp)> cb;
-  ifTimer(TTimeHandle new_handle, std::function< void(TTimeStamp ts) >&& new_cb)
-    : handle(new_handle)
-    , cb(new_cb)
-  { }
-  void declareEvent(TWatchedEvent* we) {
-    *we = TWatchedEvent( handle.timeForNextEvent() );
-  }
-  bool run() {
-    TTimeStamp ts;
-    if (ts << handle) {
-      cb(ts);
-      return true;
-    }
-    return false;
-  }
-}; 
-
 // ----------------------------------------------------------
 void sample_net_choose() {
   TSimpleDemo demo("sample_net_choose");
@@ -195,8 +151,14 @@ void sample_net_choose() {
       return;
 
     auto ticker = every(Second);
+    bool serving = true;
 
-    while (true) {
+    ifTimeout global_timer(10 * Second, [&serving]() {
+      dbg("Global timer triggers...\n");
+      serving = false;
+    });
+
+    while (serving) {
 
       int idx = choose(
         ifCanRead(server, [](Net::TSocket server) {
@@ -209,10 +171,11 @@ void sample_net_choose() {
         }),
         ifTimer(ticker, [](TTimeStamp ts) {
           dbg("Ticker...\n");
-        })
-        //, ifTimeout(950 * Time::MilliSecond, []() {
-        //  dbg("Server tick...\n");
-        //})
+        }),
+        ifTimeout(950 * Time::MilliSecond, []() { // This autoreset on each choose
+          dbg("tick at 950...\n");
+        }),
+        global_timer      // This will not autoreset
       );
       if (idx == -1)
         break;
@@ -231,7 +194,7 @@ void sample_net_choose() {
       sleep(750 * Time::MilliSecond);
       chan << name;
     }
-    close(chan);
+    //close(chan);
     dbg("All names pushed\n");
   });
 

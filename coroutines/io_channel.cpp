@@ -1,6 +1,5 @@
 #define _CRT_SECURE_NO_WARNINGS
-#include "io_channel.h"
-#include "channel.h"
+#include "coroutines.h"
 
 extern void dbg(const char *fmt, ...);
 //#define dbg(...)
