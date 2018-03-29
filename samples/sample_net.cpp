@@ -52,7 +52,7 @@ static void runServer(int max_clients) {
 
   // Wait some time before starting the server
   dbg("Server: Doing a small pause of 50ms\n");
-  Time::sleep(50 * Time::MilliSecond);
+  wait(50 * Time::MilliSecond);
   dbg("Server: Pause complete. listen..\n");
 
   auto server = Net::listen("127.0.0.1", port, AF_INET);
@@ -104,7 +104,7 @@ static void runClient(int max_id) {
   //addr = "::1";
   dbg("Client: Connecting to server %s\n", addr);
 
-  // Time::sleep(1000 * Time::MilliSecond);
+  // wait(1000 * Time::MilliSecond);
 
   auto client = Net::connect(addr, port);
   if (!client) {
@@ -184,14 +184,14 @@ void sample_net_choose() {
   });
   
   auto co_c = start([] {
-    Time::sleep(4500 * Time::MilliSecond);
+    wait(4500 * Time::MilliSecond);
     echoClient();
   });
 
   auto co_d = start([chan] {
     const char* names[] = { "john","peter","foo","bar" }; // , "laia", "luke" };
     for (auto name : names) {
-      sleep(750 * Time::MilliSecond);
+      wait(750 * Time::MilliSecond);
       chan << name;
     }
     //close(chan);

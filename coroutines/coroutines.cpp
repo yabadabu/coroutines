@@ -41,8 +41,6 @@ namespace Coroutines {
       TWatchedEvent*            event_waking_me_up = nullptr;      // Which event took us from the WAITING_FOR_EVENT
       
       // Waiting events info
-      TWatchedEvent             timeout_watched_event;
-      TTimeDelta                timeout_watching_events = Coroutines::no_timeout;  // 
       TWatchedEvent*            watched_events = nullptr;
       int                       nwatched_events = 0;
 
@@ -199,7 +197,7 @@ namespace Coroutines {
     }
 
     // --------------------------------------------------------------
-    void registerToEvents(TCoro* co, TWatchedEvent* watched_events, int nwatched_events, TTimeDelta timeout) {
+    void registerToEvents(TCoro* co, TWatchedEvent* watched_events, int nwatched_events ) {
       assert(co);
 
       int n = nwatched_events;
@@ -252,14 +250,7 @@ namespace Coroutines {
         ++we;
       }
 
-      // Do we have to install a timeout event watch?
-      if (timeout != no_timeout) {
-        co->timeout_watched_event = TWatchedEvent(timeout);
-        registerTimeoutEvent(&co->timeout_watched_event);
-      }
-
       // Put ourselves to sleep
-      co->timeout_watching_events = timeout;
       co->watched_events = watched_events;
       co->nwatched_events = nwatched_events;
       co->state = internal::TCoro::WAITING_FOR_EVENT;
@@ -271,12 +262,6 @@ namespace Coroutines {
       assert(co);
 
       int event_idx = 0;
-
-      // If we had programmed a timeout, remove it
-      if (co->timeout_watching_events != no_timeout) {
-        unregisterTimeoutEvent(&co->timeout_watched_event);
-        event_idx = wait_timedout;
-      }
 
       // Detach from event watchers
       auto we = co->watched_events;
@@ -332,8 +317,6 @@ namespace Coroutines {
         ++we;
         ++n;
       }
-
-      co->timeout_watching_events = no_timeout;
 
       // We are no longer waiting
       if(co->state == TCoro::WAITING_FOR_EVENT )
@@ -453,7 +436,7 @@ namespace Coroutines {
   }
 
   // --------------------------------------------------------------
-  int wait(TWatchedEvent* watched_events, int nwatched_events, TTimeDelta timeout) {
+  int wait(TWatchedEvent* watched_events, int nwatched_events ) {
     
     // Main thread can't wait for other co to finish
     assert(isHandle(current()));
@@ -465,7 +448,7 @@ namespace Coroutines {
     if ( idx >= 0)
       return idx;
 
-    internal::registerToEvents(co, watched_events, nwatched_events, timeout);
+    internal::registerToEvents(co, watched_events, nwatched_events);
 
     yield();
 

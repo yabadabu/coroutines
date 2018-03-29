@@ -15,7 +15,7 @@ void test_concurrency() {
   auto co1 = start(std::bind([sc]( const char* label ){
     while (true) {
       sc << label;
-      Time::sleep(Time::Second);
+      wait(Time::Second);
     }
   }, "john"));
 
@@ -45,7 +45,7 @@ StrChan boring(const char* label, TTimeDelta min_time = TTimeDelta::zero()) {
     while (true) {
       if (!(sc << label))
         break;
-      Time::sleep(min_time + Time::MilliSecond * ((rand() % 1000)));
+      wait(min_time + Time::MilliSecond * ((rand() % 1000)));
     }
     dbg("Boring %s exits\n", label);
   });

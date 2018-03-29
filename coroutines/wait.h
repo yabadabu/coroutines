@@ -96,7 +96,7 @@ namespace Coroutines {
   static const int wait_timedout = -1;
   
   // Will return the index of the event which wake up
-  int wait(TWatchedEvent* watched_events, int nevents_to_watch, TTimeDelta timeout = no_timeout);
+  int wait(TWatchedEvent* watched_events, int nevents_to_watch );
 
   // Wait a user provided function.
   void wait(TWaitConditionFn fn);

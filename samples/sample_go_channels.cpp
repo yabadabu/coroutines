@@ -145,7 +145,7 @@ void test_tickers() {
         dbg("Tick at %s\n", Time::asStr(ts - start_ts).c_str());
       }
     });
-    Time::sleep(1600 * Time::MilliSecond);
+    wait(1600 * Time::MilliSecond);
     close(ticker);
     dbg("Ticker stopped\n");
   });
@@ -156,7 +156,7 @@ void go_worker(int id, TTypedChannel<int> jobs, TTypedChannel<int> results) {
   int j;
   while (j << jobs) {
     dbg("Worker %d started job %d\n", id, j);
-    Time::sleep(Time::Second);
+    wait(Time::Second);
     dbg("Worker %d finished job %d\n", id, j);
     results << (j * 2);
   }

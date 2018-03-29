@@ -199,12 +199,12 @@ void test_download_in_parallel() {
   auto co_producer = start([ch_requests, &all_queued, &ndownloads]() {
     auto d1 = new TDownloadTask("www.lavanguardia.com");
     ch_requests << d1; ++ndownloads;
-    wait(nullptr, 0, 100 * Time::MilliSecond);
+    wait(100 * Time::MilliSecond);
     ch_requests << new TDownloadTask("blog.selfshadow.com");
     ++ndownloads;
     d1 = new TDownloadTask("www.humus.name/index.php?page=News");
     ch_requests << d1; ++ndownloads;
-    wait(nullptr, 0, 100 * Time::MilliSecond);
+    wait(100 * Time::MilliSecond);
     d1 = new TDownloadTask("www.humus.name/index.php?page=3D");
     ch_requests << d1; ++ndownloads;
     all_queued = true;
