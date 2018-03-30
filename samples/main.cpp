@@ -61,9 +61,9 @@ int main(int argc, char** argv) {
 
   boot_time = Time::now();
   //sample_wait();
-  //sample_channels();
+  sample_channels();
   //sample_create();
-  sample_net();
+  //sample_net();
   //sample_sync();
   //sample_go();
   //sample_new_channels();

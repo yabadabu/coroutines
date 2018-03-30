@@ -4,6 +4,7 @@
 #include "sample.h"
 
 using namespace Coroutines;
+using Coroutines::wait;
 
 typedef TTypedChannel<int> IntsChannel;
 
@@ -84,9 +85,45 @@ void test_channels_send_from_main() {
   close(ch1);
 }
 
+void test_consumers() {
+  TSimpleDemo demo("test_consumers");
+
+  // Because we can't wait from the main thread
+  start([]() {
+    // Create a channel
+    auto ch1 = TTypedChannel<int>::create(32);
+  
+    // 3 consumers
+    std::vector<THandle> consumers;
+    for (int i = 0; i<3; ++i) {
+      consumers.push_back( start([i, ch1]() {
+        int id;
+        while (id << ch1) {
+          dbg("[%d] Consumed %d\n", i, id);
+        };
+        dbg("[%d] Leaves\n", i);
+      }));
+    }
+
+    auto producer = start([ch1]() {
+      int ids[] = { 2,3,5,7,11,13 };
+      for (auto id : ids) {
+        dbg("Producing %d\n", id);
+        ch1 << id;
+        wait(Time::Second);
+      }
+      close(ch1);
+    });
+
+    waitAll(consumers, producer);
+    dbg("All done\n");
+  });
+
+}
 
 // ----------------------------------------------------------
 void sample_channels() {
-  test_channels();
-  test_channels_send_from_main();
+  test_consumers();
+  //test_channels();
+  //test_channels_send_from_main();
 }

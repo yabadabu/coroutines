@@ -1,6 +1,7 @@
 This is a C++ framework to run coroutines using fcontext as a switching platform.
 
-** Status
+Status
+------
 
 - Runs on Windows (x64), Linux & OSX
 - Currently just one thread does all the job without being blocked.
@@ -12,27 +13,152 @@ This is a C++ framework to run coroutines using fcontext as a switching platform
 - Co's can wait for several mixed conditions
 - You specify when can the coroutines run.
 
-** Install 
-  
+Install 
+-------
+
   mkdir build  
   cmake -G "Visual Studio 15 2017 Win64" ..
 
-** Dependencies
- 
+Dependencies
+------------
+
  - fcontext lib as switching platform
  - c++11 compiler
 
-** TODO
+Quick Examples
+--------------
+
+Simple couroutine start and wait
+
+```cpp
+  // Simple create a coroutine
+  auto co = start([](){
+    printf( "Hi\n");
+    wait( 2 * Time::Second );
+    printf( "Bye\n");
+  });
+
+  // And wait from other...
+  wait( co );
+```
+
+Channels example
+
+```cpp
+  // Because we can't wait from the main thread
+  start([]() {
+    // Create a channel to hold 32 ints
+    auto ch1 = TTypedChannel<int>::create(32);
+  
+    // 3 consumers
+    std::vector<THandle> consumers;
+    for (int i = 0; i<3; ++i) {
+      consumers.push_back( start([i, ch1]() {
+        int id;
+        while (id << ch1) {
+          dbg("[%d] Consumed %d\n", i, id);
+        };
+        dbg("[%d] Leaves\n", i);
+      }));
+    }
+
+    auto producer = start([ch1]() {
+      int ids[] = { 2,3,5,7,11,13 };
+      for (auto id : ids) {
+        dbg("Producing %d\n", id);
+        ch1 << id;
+        wait(500 * Time::MilliSecond);
+      }
+      close(ch1);
+    });
+
+    waitAll(consumers, producer);
+    dbg("All done\n");
+  });
+```
+
+Network echo example client & server
+
+```cpp
+  void echoClient() {
+    const char* addr = "127.0.0.1";
+    Net::TSocket client = Net::connect(addr, port);
+    if (!client)
+      return;
+    // Will send 5+1 bytes
+    client << "Hello";
+    char buf[256];
+    int nbytes = Net::recvUpTo(client, buf, sizeof(buf));
+    dbg("Server answer is %d bytes: %s\n", nbytes, buf);
+    Net::close(client);
+  }
+
+  void echoServer(Net::TSocket server) {
+    auto client = Net::accept(server);
+    if (!client)
+      return;
+    char buf[256];
+    int nbytes = Net::recvUpTo(client, buf, sizeof(buf));
+    Net::send(client, buf, nbytes);
+    Net::close(client);
+  }
+
+  // ----------------------------------------------------------
+  auto co_s = start([]() {
+    auto server = Net::listen("127.0.0.1", port, AF_INET);
+    if (!server)
+      return;
+    while (true) {
+      echoServer(server);
+      break;              // Exit after one client received
+    }
+    Net::close(server);
+  });
+
+  auto co_c = start(echoClient);
+```
+
+Syntax to wait for several events.
+
+```cpp
+    // When a co wants to 'wait' for activity in two channels with a timer...
+    TWatchedEvent wes[3] = {
+      canRead( channel1 ), 
+      canRead( channel2 ),
+      400 * MilliSecond
+    };
+    int n = wait( wes, 3 );  // Return index of the event triggered
+```
+
+Or use the 'choose' syntax if you want to have the reaction of the event close to the event def.
+
+```cpp
+    int n = choose( 
+      ifCanRead( channel1, []( const char* data ){
+        // Do something with char* data...
+      })
+      ,ifCanRead( channel2, []( int data ){
+        // Do something with int data...
+      })
+      ,ifTimeout(400 * MilliSecond, []() {
+        // Timeout waiting...
+      })
+    );
+```
+
+TODO
+----
 
 - There is no option to destroy a channel. Channels should autodestroy
   when empty() and closed(). Alarms when fired?
-- Choose on  null channel should never block
-- Add io channels to use in the choose
+- Choose on null handles should never block
 - Add more examples
 - Remove old entries from 'VDescriptors' at internal::TIOEvents once done
 - Wait for Barrier or semaphores.
 - Test poll, epoll
 - Add HTTP download
+- Add support for https
++ Add io channels to use in the choose
 + Using std::chrono
 + Increase timer resolution to usecs
 + Close channel to ChanHandle
@@ -82,13 +208,4 @@ This is a C++ framework to run coroutines using fcontext as a switching platform
   - If the 'watched event' is created in the stack, we don't need to malloc/free that memory
     Just be sure the events are unregistered when the thread continues
   - Add a next/prev link so the events can be anywhere
-
-  - When a co wants to 'wait' for activity in two channels with a timer...
-    TEventWatch events_to_watch[2] = {
-      { this_handle, EVT_CHANNEL_DATA_CAN_BE_READ, channel1, &data1, next? }
-    , { this_handle, EVT_CHANNEL_DATA_CAN_BE_READ, channel2, &data2, next? }
-    };
-    wait( events_to_watch, 2, 1000 * Time::Millisecond );
-
-
 

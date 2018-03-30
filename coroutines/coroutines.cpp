@@ -389,10 +389,6 @@ namespace Coroutines {
     wait(&we, 1);
   }
 
-  void waitAll() {
-
-  }
-  
   // First check if any of the wait conditions we can quickly test are false, so there is no need to enter in the wait
   // for event mode
   int isAnyReadyWithoutBlocking(TWatchedEvent* watched_events, int nwatched_events) {

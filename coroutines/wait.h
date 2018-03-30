@@ -98,13 +98,26 @@ namespace Coroutines {
   // wait while h is a coroutine handle
   void wait(TWatchedEvent we);
 
-  // Empty fallback
-  void waitAll();
+  // Generic waitAll of just one, means wait it
+  template< typename T>
+  void waitAll(T& we) {
+    wait(we);
+  }
 
-  // Template to wait for several objects
+  // If the single is a vector, wait all each of them
+  // just if it's a vector of vectors
+  template< typename T>
+  void waitAll(std::vector<T>& wes) {
+    for (auto w : wes)
+      waitAll(w);
+  }
+
+  // Template to wait for several objects, wait each one
+  // in sequence.
+  // Does not mean at the end everything is ready again
   template< typename A, typename ...Args >
   void waitAll(A a, Args... args) {
-    wait(a);
+    waitAll(a);
     waitAll(args...);
   }
 
