@@ -149,29 +149,30 @@ Or use the 'choose' syntax if you want to have the reaction of the event close t
 TODO
 ----
 
-- There is no option to destroy a channel. Channels should autodestroy
+- [ ] There is no option to destroy a channel. Channels should autodestroy
   when empty() and closed(). Alarms when fired?
-- Choose on null handles should never block
-- Add more examples
-- Remove old entries from 'VDescriptors' at internal::TIOEvents once done
-- Wait for Barrier or semaphores.
-- Test poll, epoll
-- Add HTTP download
-- Add support for https
-+ Add io channels to use in the choose
-+ Using std::chrono
-+ Increase timer resolution to usecs
-+ Close channel to ChanHandle
-+ Wait for async file reads.
-+ Remove old channels
-+ Move TChannel/CIOHandle to handle-based resource or simple identifiers
-+ Allow user to create his own events, which when triggered will wake up
-+ Support for IPv6
-+ Test in unix/osx 
-+ Confirm a co can abort itself, or another co.
-+ Use proper real time for wait fn's. We have millisecond precision
+- [ ] Choose on null handles should never block
+- [ ] Add more examples
+- [ ] Remove old entries from 'VDescriptors' at internal::TIOEvents once done
+- [ ] Wait for Barrier or semaphores.
+- [ ] Test poll, epoll
+- [ ] Add HTTP download
+- [ ] Add support for https
+- [x] Add io channels to use in the choose
+- [x] Using std::chrono
+- [x] Increase timer resolution to usecs
+- [x] Close channel to ChanHandle
+- [x] Wait for async file reads.
+- [x] Remove old channels
+- [x] Move TChannel/CIOHandle to handle-based resource or simple identifiers
+- [x] Allow user to create his own events, which when triggered will wake up
+- [x] Support for IPv6
+- [x] Test in unix/osx 
+- [x] Confirm a co can abort itself, or another co.
+- [x] Use proper real time for wait fn's. We have millisecond precision
 
-** Behaviour
+Behaviour
+---------
 
 - A co is:
   - Running, meaning will run until yields or faces a wait condition

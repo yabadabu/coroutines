@@ -38,9 +38,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\README" />
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="..\coroutines\coroutines.h">
       <Filter>coroutines</Filter>
     </ClInclude>
@@ -78,5 +75,8 @@
     <ClInclude Include="..\coroutines\io_file.h">
       <Filter>coroutines</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\README.md" />
   </ItemGroup>
 </Project>

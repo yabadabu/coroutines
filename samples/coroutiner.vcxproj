@@ -167,9 +167,6 @@
     <ClCompile Include="sample_wait.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\README" />
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="..\coroutines\channel.h" />
     <ClInclude Include="..\coroutines\channel_handle.h" />
     <ClInclude Include="..\coroutines\choose.h" />
@@ -183,6 +180,9 @@
     <ClInclude Include="..\coroutines\timeline.h" />
     <ClInclude Include="..\coroutines\wait.h" />
     <ClInclude Include="sample.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\README.md" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
