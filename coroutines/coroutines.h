@@ -42,6 +42,19 @@ namespace Coroutines {
   void    wakeUp(TWatchedEvent* we);
   typedef std::function<bool(void)> TWaitConditionFn;
 
+  // --------------------------------------------------
+  enum eEventType {
+    EVT_USER_EVENT = 0
+  , EVT_COROUTINE_ENDS
+  , EVT_TIMEOUT
+  , EVT_SOCKET_IO_CAN_READ
+  , EVT_SOCKET_IO_CAN_WRITE
+  , EVT_CHANNEL_CAN_PUSH
+  , EVT_CHANNEL_CAN_PULL
+  , EVT_INVALID
+  , EVT_TYPES_COUNT
+  };
+
 }
 
 #include "channel_handle.h"
@@ -49,9 +62,9 @@ namespace Coroutines {
 #include "timeline.h"
 #include "io_events.h"
 #include "events.h"
+#include "io_channel.h"
 #include "wait.h"
 #include "channel.h"
-#include "io_channel.h"
 #include "choose.h"
 
 #endif

@@ -10,7 +10,7 @@ namespace Coroutines {
     std::vector<TBaseChan*> all_channels;
 
     // -------------------------------------------------------------
-    TChanHandle registerChannel(TBaseChan* c, eChannelType channel_type) {
+    TChanHandle registerChannel(TBaseChan* c, TChanHandle::eClassID channel_type) {
       // Right now add it to the end...
       all_channels.push_back(c);
       c->handle = TChanHandle(channel_type, (int32_t)all_channels.size() - 1);
@@ -97,12 +97,12 @@ namespace Coroutines {
       TTimeDelta time_for_event = next - right_now;
 
       TWatchedEvent wes[2];
-      wes[0] = TWatchedEvent(time_for_event);
+      wes[0] = time_for_event;
 
       // We can also exit from the wait IF this channel 
       // becomes 'closed' while we are waiting.
       // The 'close' will trigger this event
-      wes[1] = TWatchedEvent(handle, eEventType::EVT_CHANNEL_CAN_PULL);
+      wes[1] = canRead(handle);
       int idx = wait(wes, 2);
       if (idx == -1)
         return false;
@@ -118,19 +118,19 @@ namespace Coroutines {
 
   TTimeHandle every(TTimeDelta interval_time) {
     TTimeChan* c = new TTimeChan(interval_time, true);
-    return internal::registerChannel(c, eChannelType::CT_TIMER);
+    return internal::registerChannel(c, TChanHandle::eClassID::CT_TIMER);
   }
 
   TTimeHandle after(TTimeDelta interval_time) {
     TTimeChan* c = new TTimeChan(interval_time, false);
-    return internal::registerChannel(c, eChannelType::CT_TIMER);
+    return internal::registerChannel(c, TChanHandle::eClassID::CT_TIMER);
   }
 
   bool operator<<(TTimeStamp& value, TTimeHandle cid) {
     auto c = internal::TBaseChan::findChannelByHandle(cid);
     if (!c || c->closed())
       return false;
-    assert(cid.class_id == eChannelType::CT_TIMER);
+    assert(cid.class_id == TChanHandle::eClassID::CT_TIMER);
     TTimeChan* tc = (TTimeChan*)c;
     return tc->pullTime(value);
   }
@@ -139,7 +139,7 @@ namespace Coroutines {
     auto c = internal::TBaseChan::findChannelByHandle(*this);
     if (!c || c->closed())
       return TTimeDelta::zero();
-    assert(class_id == eChannelType::CT_TIMER);
+    assert(class_id == TChanHandle::eClassID::CT_TIMER);
     TTimeChan* tc = (TTimeChan*) c;
     return tc->next - Time::now();
   }
@@ -164,5 +164,9 @@ namespace Coroutines {
     auto c = internal::TBaseChan::findChannelByHandle(cid);
     return c != nullptr;
   }
+
+  // Declared in wait.h
+  TWatchedEvent canRead(TChanHandle c) { return TWatchedEvent(c, eEventType::EVT_CHANNEL_CAN_PULL); }
+  TWatchedEvent canWrite(TChanHandle c) { return TWatchedEvent(c, eEventType::EVT_CHANNEL_CAN_PUSH); }
 
 }

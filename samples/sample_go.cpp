@@ -15,7 +15,7 @@ void test_concurrency() {
   auto co1 = start(std::bind([sc]( const char* label ){
     while (true) {
       sc << label;
-      Time::sleep(Time::Second);
+      wait(Time::Second);
     }
   }, "john"));
 
@@ -45,7 +45,7 @@ StrChan boring(const char* label, TTimeDelta min_time = TTimeDelta::zero()) {
     while (true) {
       if (!(sc << label))
         break;
-      Time::sleep(min_time + Time::MilliSecond * ((rand() % 1000)));
+      wait(min_time + Time::MilliSecond * ((rand() % 1000)));
     }
     dbg("Boring %s exits\n", label);
   });
@@ -148,9 +148,9 @@ StrChan fanInWithWait(StrChan a, StrChan b) {
       // or 400ms without activity are triggered
       const char* msg;
       TWatchedEvent we[3] = { 
-        TWatchedEvent(a, eEventType::EVT_CHANNEL_CAN_PULL ), 
-        TWatchedEvent(b, eEventType::EVT_CHANNEL_CAN_PULL ),
-        TWatchedEvent( 400 * Time::MilliSecond )
+        canRead(a),
+        canRead(b),
+        400 * Time::MilliSecond
       };
       int n = wait(we, 3);
       if (n == 2 || n == -1) {
@@ -197,10 +197,10 @@ StrChan fanInChoose(StrChan a, StrChan b) {
       
       // Wait until we can 'read' from any of those channels
       int n = choose(
-        ifCanPull(a, [c](const char* msg) {
+        ifCanRead(a, [c](const char* msg) {
           c << msg;
         }),
-        ifCanPull(b, [c](const char* msg) {
+        ifCanRead(b, [c](const char* msg) {
           c << msg;
         }),
         ifTimeout(400 * Time::MilliSecond, []() {

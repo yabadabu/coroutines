@@ -1,5 +1,6 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include "coroutines.h"
+#include "wait.h"
 
 extern void dbg(const char *fmt, ...);
 //#define dbg(...)
@@ -45,6 +46,10 @@ extern void dbg(const char *fmt, ...);
 #endif
 
 namespace Coroutines {
+
+  // Declared in wait.h
+  TWatchedEvent canRead(Net::TSocket s) { return TWatchedEvent(s, eEventType::EVT_SOCKET_IO_CAN_READ); }
+  TWatchedEvent canWrite(Net::TSocket s) { return TWatchedEvent(s, eEventType::EVT_SOCKET_IO_CAN_WRITE); }
 
   namespace Net {
 
@@ -122,24 +127,21 @@ namespace Coroutines {
             int sys_err = sys_errno;
             if (sys_err == SYS_ERR_CONN_IN_PROGRESS) {
               dbg("FD %d waiting to connect\n", sock.s);
-              TWatchedEvent we(sock.s, EVT_SOCKET_IO_CAN_WRITE);
-              int n = wait(&we, 1);
-              if (n == 0) {
+              wait( canWrite(sock) );
 
-                // Confirm we are really connected by checking the socket error
-                int sock_err = getSocketError(sock.s);
+              // Confirm we are really connected by checking the socket error
+              int sock_err = getSocketError(sock.s);
 
-                // All ok, no errors
-                if (sock_err == 0) {
-                  answer = sock.s;
-                  break;
-                }
-
-                // The expected error in this case is Conn Refused when there is no server
-                // in the remote address. Other erros, I prefer to report them
-                if (sock_err != ECONNREFUSED)
-                  dbg("connect.failed getsockopt( %d ) (err=%08x %s)\n", sock.s, sock_err, strerror(sock_err));
+              // All ok, no errors
+              if (sock_err == 0) {
+                answer = sock.s;
+                break;
               }
+
+              // The expected error in this case is Conn Refused when there is no server
+              // in the remote address. Other erros, I prefer to report them
+              if (sock_err != ECONNREFUSED)
+                dbg("connect.failed getsockopt( %d ) (err=%08x %s)\n", sock.s, sock_err, strerror(sock_err));
             }
           }
         }
@@ -167,8 +169,7 @@ namespace Coroutines {
           int sys_err = sys_errno;
           if (sys_err == SYS_ERR_WOULD_BLOCK) {
             dbg("FD %d goes to sleep waiting for a connection\n", server);
-            TWatchedEvent we(server.s, EVT_SOCKET_IO_CAN_READ);
-            wait(&we, 1);
+            wait(canRead(server));
             continue;
           }
           dbg("FD %d accept failed (%08x)\n", server, sys_err); // , strerror(sys_err) );
@@ -237,8 +238,7 @@ namespace Coroutines {
         auto bytes_sent = sys_send(sock.s, ((const char*)src_buffer) + total_bytes_sent, (int)(bytes_to_send - total_bytes_sent), 0);
         if (bytes_sent == -1) {
           if (errno == SYS_ERR_WOULD_BLOCK) {
-            TWatchedEvent we(sock.s, EVT_SOCKET_IO_CAN_WRITE);
-            wait(&we, 1);
+            wait( canWrite(sock) );
           }
           else
             break;
@@ -263,8 +263,7 @@ namespace Coroutines {
         if (new_bytes_read == -1) {
           int err = sys_errno;
           if (err == SYS_ERR_WOULD_BLOCK) {
-            TWatchedEvent we(sock.s, EVT_SOCKET_IO_CAN_READ);
-            wait(&we, 1);
+            wait( canRead(sock) );
           }
           else
             break;
@@ -288,8 +287,7 @@ namespace Coroutines {
         if (new_bytes_read == -1) {
           int err = sys_errno;
           if (err == SYS_ERR_WOULD_BLOCK) {
-            TWatchedEvent we(sock.s, EVT_SOCKET_IO_CAN_READ);
-            wait(&we, 1);
+            wait( canRead(sock) );
           }
           else
             break;

@@ -65,7 +65,7 @@ void test_self_destroy() {
   auto co_main = start([]() {
     auto co = start([]() {
       dbg("Co1: Waiting for 1sec\n");
-      Time::sleep(1 * Time::Second);
+      wait(1 * Time::Second);
       dbg("Co1: Waiting finished. Now self aborting\n");
       exitCo();
       dbg("Co1: selfdestroy. This msg should not be printed\n");
@@ -79,7 +79,7 @@ void test_self_destroy() {
 // ----------------------------------------------------------
 void simpleWait() {
   dbg("Co1: Waiting for 2sec\n");
-  Time::sleep(2 * Time::Second);
+  wait(2 * Time::Second);
   dbg("Co1: simpleWait This msg should not be printed as 2secs\n");
 }
 
@@ -91,13 +91,13 @@ void test_co1_destroys_co2() {
 
     auto co2 = start([co1]() {
       dbg("Co2: Waiting for 1sec\n");
-      Time::sleep(1 * Time::Second);
+      wait(1 * Time::Second);
       dbg("Co2: Waiting finished. Now destroying co1\n");
       exitCo(co1);
       dbg("Co2: co1 Destroyed\n");
       assert(!isHandle(co1));
       assert(isHandle(current()));
-      Time::sleep( 500 * Time::MilliSecond);
+      wait( 500 * Time::MilliSecond);
     });
     dbg("Main will wait co1 and co2\n");
     waitAll( co1, co2 );

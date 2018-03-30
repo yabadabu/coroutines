@@ -96,10 +96,8 @@ namespace Coroutines {
 
         assert(this);
 
-        while (empty() && !closed()) {
-          TWatchedEvent evt(handle, EVT_CHANNEL_CAN_PULL);
-          wait(&evt, 1);
-        }
+        while (empty() && !closed()) 
+          wait(canRead(handle));
 
         if (empty() && closed())
           return false;
@@ -111,10 +109,8 @@ namespace Coroutines {
 
       bool pushObj( T& obj) {
 
-        while (full() && !closed()) {
-          TWatchedEvent evt(handle, EVT_CHANNEL_CAN_PUSH);
-          wait(&evt, 1);
-        }
+        while (full() && !closed())
+          wait(canWrite(handle));
 
         if (closed())
           return false;
@@ -127,12 +123,12 @@ namespace Coroutines {
     };
 
     // --------------------------------------------------------------
-    TChanHandle registerChannel(TBaseChan* c, eChannelType channel_type);
+    TChanHandle registerChannel(TBaseChan* c, TChanHandle::eClassID channel_type);
 
     template< typename T >
     TChanHandle createTypedChannel(size_t max_capacity) {
       auto c = new TMemChan<T>(max_capacity);
-      return registerChannel(c, eChannelType::CT_MEMORY);
+      return registerChannel(c, TChanHandle::eClassID::CT_MEMORY);
     }
 
   }

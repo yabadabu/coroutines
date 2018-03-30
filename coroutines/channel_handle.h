@@ -8,10 +8,10 @@ namespace Coroutines {
   // -------------------------------------------------------
   // -------------------------------------------------------
   // -------------------------------------------------------
-  enum eChannelType { CT_INVALID = 0, CT_TIMER = 1, CT_MEMORY, CT_IO };
   struct TChanHandle {
+    enum eClassID { CT_INVALID = 0, CT_TIMER = 1, CT_MEMORY, CT_IO };
     
-    eChannelType class_id : 4;
+    eClassID     class_id : 4;
     uint32_t     index : 12;
     uint32_t     age : 16;
 
@@ -20,7 +20,7 @@ namespace Coroutines {
       index = age = 0;
     }
 
-    TChanHandle(eChannelType channel_type, int32_t new_index) {
+    TChanHandle(eClassID channel_type, int32_t new_index) {
       class_id = channel_type;
       index = new_index;
       age = 1;

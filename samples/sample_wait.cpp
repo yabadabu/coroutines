@@ -31,7 +31,7 @@ void test_yield() {
 // -----------------------------------------------------------
 void basic_wait_time(const char* title, TTimeDelta amount_of_time) {
   dbg("%s boots. Will wait %d msecs\n", title, Time::asMilliSeconds( amount_of_time ));
-  wait(nullptr, 0, amount_of_time);
+  wait(amount_of_time);
   dbg("%s After waiting %d msecs we leave\n", title, Time::asMilliSeconds(amount_of_time));
 }
 
@@ -44,7 +44,7 @@ void test_wait_time() {
   }
   auto elapsed = tm.elapsed();
   dbg("test_wait_time expected to finish in %ld msecs, and finished in %ld...\n", Time::asMilliSeconds( 5 * Time::Second ), Time::asMilliSeconds( elapsed ) );
-  assert( abs( Time::asMilliSeconds( elapsed - ( 5 * Time::Second ) ) ) < 5 );
+  assert( abs( Time::asMilliSeconds( elapsed - ( 5 * Time::Second ) ) ) < 10 );
 }
 
 // -----------------------------------------------------------
@@ -63,8 +63,8 @@ void test_wait_all() {
     });
   }
   TTimeDelta elapsed = tm.elapsed();
-  dbg("waitAll expected to finish in %d msecs, and finished in %d...\n", 2500 * Time::MilliSecond, elapsed );
-  assert( abs( Time::asMilliSeconds( elapsed - 2500 * Time::MilliSecond) ) < 5 );
+  dbg("waitAll expected to finish in %d msecs, and finished in %d...\n", 2500, Time::asMilliSeconds( elapsed ));
+  assert( abs( Time::asMilliSeconds( elapsed - 2500 * Time::MilliSecond) ) < 12 );
 }
 
 // ---------------------------------------------------------
@@ -81,7 +81,7 @@ void test_wait_keys() {
     dbg("At coKeys. Now press the key 'B'\n");
     waitKey('B');
     dbg("At coKeys. well done\n");
-  });
+  }); 
 }
 
 // ---------------------------------------------------------
@@ -102,7 +102,7 @@ void test_wait_2_coroutines_with_timeout() {
       dbg("co2 iter %d %08x %08x (%p %p)\n", niter, coA.asUnsigned(), coB.asUnsigned(), &coA, &coB);
       ++niter;
       int n = 0;
-      TWatchedEvent evts[2];
+      TWatchedEvent evts[3];
       if (isHandle(tcoA))
         evts[n++] = tcoA;
       if (isHandle(tcoB))
@@ -112,8 +112,9 @@ void test_wait_2_coroutines_with_timeout() {
         break;
       }
       dbg("co2 goes to sleep for 5s waiting for coA and/or coB to end (%d)\n", n);
-      int k = wait(evts, n, 5 * Time::Second);
-      if (k == wait_timedout)
+      evts[n++] = 5 * Time::Second;
+      int k = wait(evts, n);
+      if (k == (n-1))
         dbg("co2 timedout\n");
       else
         dbg("co2 resumes for event %d\n", k);
@@ -148,9 +149,9 @@ void test_user_events() {
       int n = 0;
       // Register only to the active events
       if (!isEventSet(evt1))
-        we[n++] = TWatchedEvent(evt1);
+        we[n++] = evt1;
       if (!isEventSet(evt2))
-        we[n++] = TWatchedEvent(evt2);
+        we[n++] = evt2;
       if (!n)
         break;
       dbg("B1. Waiting for %d events\n", n);
@@ -191,7 +192,7 @@ void sample_wait() {
   test_user_events();
   test_yield();
   test_wait_time();
-  //test_wait_all();
-  //test_wait_keys();
-  //test_wait_2_coroutines_with_timeout();
+  test_wait_all();
+  test_wait_keys();
+  test_wait_2_coroutines_with_timeout();
 }
