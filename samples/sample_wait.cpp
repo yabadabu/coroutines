@@ -114,7 +114,7 @@ void test_wait_2_coroutines_with_timeout() {
       dbg("co2 goes to sleep for 5s waiting for coA and/or coB to end (%d)\n", n);
       evts[n++] = 5 * Time::Second;
       int k = wait(evts, n);
-      if (k == wait_timedout)
+      if (k == (n-1))
         dbg("co2 timedout\n");
       else
         dbg("co2 resumes for event %d\n", k);
