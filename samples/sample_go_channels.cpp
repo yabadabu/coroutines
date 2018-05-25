@@ -1,6 +1,7 @@
 #include <cstdarg>
 #include <cstdio>
 #include <vector>
+#include <string>
 #include "sample.h"
 
 using namespace Coroutines;

@@ -1,6 +1,7 @@
 #include <cstdarg>
 #include <cstdio>
 #include <vector>
+#include <string>
 #include "sample.h"
 #include "coroutines/io_channel.h"
 
